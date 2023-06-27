@@ -62,6 +62,14 @@ echo "${RED}ping -? -v localhost${WHITE}"
 ping -? -v localhost
 echo "error code = $?"
 
+echo "${RED}ping -v localhost -?${WHITE}"
+ping -v localhost -?
+echo "error code = $?"
+
+echo "${RED}ping -? localhost -v${WHITE}"
+ping -v localhost -?
+echo "error code = $?"
+
 echo "${RED}ping localhost -?${WHITE}"
 ping localhost -?
 echo "error code = $?"
@@ -79,6 +87,9 @@ echo "error code = $? (must be 1)"
 echo "${RED}ping -v -v${WHITE}"
 ping -v -v
 echo "error code = $?"
+
+echo "${RED}ping 172.1368${WHITE}"
+ping 172.1368
 
 #ping host unreachable at home
 echo "${RED}ping host unreachable${WHITE}"
