@@ -36,7 +36,9 @@ static void    searchFlags(char *argv[]/*, struct addrinfo *client*/) {
 
 static struct addrinfo *getIp(struct addrinfo *client, char *argv[], int *i) {
     struct addrinfo *listAddr = 0;
+    struct sockaddr_in *translate;
     int result = 0;
+
     for (; argv[*i] != NULL; ++(*i)) {
         if (argv[*i][0] != '-') {
             result = getaddrinfo(argv[*i], NULL, client, &listAddr);
@@ -47,14 +49,14 @@ static struct addrinfo *getIp(struct addrinfo *client, char *argv[], int *i) {
             break ;
         }
     }
-    /*char str[1000];
+    char str[1000];
     ft_memset(str, 0, 1001);
     for (struct addrinfo *i = listAddr; i != NULL; i = i->ai_next) {
         translate = (struct sockaddr_in *)i->ai_addr;
         printf("%x\n%s\n", translate->sin_addr.s_addr,
             inet_ntop(AF_INET, &translate->sin_addr, str, INET_ADDRSTRLEN));
         ft_memset(str, 0, 1001);
-    }*/
+    }
     if (t_flags.interrogation == FALSE && !listAddr) {
         dprintf(2, "%s",
             "ping: missing host operand\nTry 'ping -?' for more information.\n");
@@ -71,7 +73,7 @@ static void    pingStart(int argc, char *argv[]) {
     int     fdSocket = 0;
     int     i = 1;
 
-    //init part 
+    //init part
     for (; i < argc; ++i) {
         ft_memset(&client, 0, sizeof(struct addrinfo));
         client.ai_family = AF_INET;
