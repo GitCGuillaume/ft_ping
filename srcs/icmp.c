@@ -13,11 +13,14 @@ void    icmpResponse(void) {
 uint16_t    checksum(uint16_t *hdr, size_t len) {
     uint16_t sum = 0;
 
-    while (len > 0) {
+    while (len > 1) {
         sum += *hdr++;
         len -= sizeof(uint16_t);
     }
-    return (~sum);
+    if (len > 0) {
+        sum += *hdr;
+    }
+    return (~sum);//complement one' from sum
 }
 
 /*
@@ -28,33 +31,42 @@ uint16_t    checksum(uint16_t *hdr, size_t len) {
     checksum is a error detection method
 */
 
-
+/* (ipv4 max)65535 - (sizeof ip)20 - (sizeof icmp)8 */
 void    runIcmp(struct addrinfo *client, int fdSocket) {
-    struct msghdr msgResponse;
+   // struct msghdr msgResponse;
+    char buff[65507];
     struct icmphdr  icmp;
     struct addrinfo *mem = client;
-
+    ft_memset(buff, 0, 65507);
     int result = -1;
     ft_memset(&icmp, 0, sizeof(struct icmphdr));
     icmp.type = ICMP_ECHO;
     icmp.code = 0;
-    icmp.checksum = checksum((uint16_t *)icmp, sizeof(icmp));
     icmp.un.echo.id = getpid();
     icmp.un.echo.sequence = htons(1);
+    icmp.checksum = 0;
+    //checksum((uint16_t *)&icmp, 32);
+    //exit(1);
+    ft_memcpy(buff, &icmp, sizeof(icmp));
+    icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp) + 1);
+    ft_memcpy(buff, &icmp, sizeof(icmp));
+    printf("struct ip: %ld\n", sizeof(struct ip));
+    printf("%ld\n", sizeof(icmp));
     while (mem) {
 //        printf("%d\n", mem->ai_flags);
-        result = sendto(fdSocket, &icmp,
-            sizeof(struct icmphdr), 0,
-            (struct sockaddr *)mem, sizeof(struct sockaddr));
+        result = sendto(fdSocket, buff,
+            sizeof(struct icmphdr) + 1, MSG_CONFIRM,
+            mem->ai_addr, sizeof(*mem->ai_addr));
+        printf("result: %d\n", result);
         if (result < 0) {
             dprintf(2, "%s\n", gai_strerror(result));
             exit(1);
         }
-        while (1) {
+        /*while (1) {
             printf("res: %lu\n", recvmsg(fdSocket, &msgResponse, MSG_DONTWAIT));
             usleep(100);
-        }
-        break ;
+        }*/
+        //break ;
         mem = mem->ai_next;
     }
 }
