@@ -3,26 +3,27 @@
 #include "ft_icmp.h"
 
 struct s_flags t_flags;
+int fdSocket;
 
 static int openSocket(struct addrinfo *listAddr) {
     if (!listAddr)
         exit(EXIT_FAILURE);
     struct addrinfo *mem = listAddr;
-    int fdSocket = -1;
+    int fd = -1;
 
     while (mem)
     {
-        fdSocket = socket(mem->ai_family, mem->ai_socktype, mem->ai_protocol);
-        if (fdSocket >= 0)
+        fd = socket(mem->ai_family, mem->ai_socktype, mem->ai_protocol);
+        if (fd >= 0)
             break ;
         mem = mem->ai_next;
     }
-    if (fdSocket < 0) {
+    if (fd < 0) {
         dprintf(2, "%s", "Couldn't open socket.\n");
         freeaddrinfo(listAddr);
         exit(EXIT_FAILURE);
     }
-    return (fdSocket);
+    return (fd);
 }
 
 static void    searchFlags(char *argv[]/*, struct addrinfo *client*/) {
@@ -70,7 +71,6 @@ static struct addrinfo *getIp(struct addrinfo *client, char *argv[], int *i) {
 static void    pingStart(int argc, char *argv[]) {
     struct  addrinfo *listAddr = 0;
     struct  addrinfo client;
-    int     fdSocket = 0;
     int     i = 1;
 
     //init part
@@ -86,7 +86,7 @@ static void    pingStart(int argc, char *argv[]) {
         }
         fdSocket = openSocket(listAddr);
         //next part ping here
-        runIcmp(listAddr, fdSocket);
+        runIcmp(listAddr);
         freeaddrinfo(listAddr);
         if (fdSocket >= 0)
             close(fdSocket);
