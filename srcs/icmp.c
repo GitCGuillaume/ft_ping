@@ -1,6 +1,8 @@
 #include "ft_icmp.h"
 #include "tools.h"
 
+int i = 0;
+
 void    icmpRequest(void) {
 
 }
@@ -108,28 +110,20 @@ void    sigHandler(int sig) {
     printf("\na");
     if (sig != SIGALRM)
         return ;
-    struct icmphdr  icmp;
-    char buff[65507];
-    int result = -1;
-    static int i = 0;
+    
+    
 
-    ft_memset(&icmp, 0, sizeof(struct icmphdr));
-    icmp.type = ICMP_ECHO;
-    icmp.code = 0;
-    icmp.un.echo.id = getpid();
-    icmp.un.echo.sequence = htons(i);
-    ++i;
-    icmp.checksum = 0;
-    ft_memcpy(buff, &icmp, sizeof(icmp));
-    icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp));
-    ft_memcpy(buff, &icmp, sizeof(icmp));   
-    result = sendto(fdSocket, buff,
-        64, 0,
-        mem->ai_addr, sizeof(*mem->ai_addr));
-    if (result < 0) {
-        dprintf(2, "%s\n", gai_strerror(result));
-        exit(1);
-    }
+    
+}
+
+void    sigHandlerInt(int sigNum) {
+    if (sigNum != SIGINT)
+        return ;
+}
+
+void    sigHandlerAlrm(int sigNum) {
+    if (sigNum != SIGALRM)
+        return ;
 }
 
 /*
@@ -142,14 +136,33 @@ void    sigHandler(int sig) {
 
 /* (ipv4 max)65535 - (sizeof ip)20 - (sizeof icmp)8 */
 void    runIcmp(struct addrinfo *client) {
+    struct icmphdr  icmp;
     struct msghdr msgResponse;
-    char buff2[65507];
-    
     struct iovec msg[1];
-
-    signal(sigHandler, SIGALRM);
-    while (1) {
-        alarm(1);
+    char buff2[65507];
+    char buff[65507];
+    int result = -1;
+    
+    //signal(sigHandler, SIGALRM);
+    //while (1) {
+        printf("i:%d\n", i);
+        ft_memset(&icmp, 0, sizeof(struct icmphdr));
+        icmp.type = ICMP_ECHO;
+        icmp.code = 0;
+        icmp.un.echo.id = getpid();
+        icmp.un.echo.sequence = htons(i);
+        ++i;
+        icmp.checksum = 0;
+        ft_memcpy(buff, &icmp, sizeof(icmp));
+        icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp));
+        ft_memcpy(buff, &icmp, sizeof(icmp));   
+        result = sendto(fdSocket, buff,
+            64, 0,
+            client->ai_addr, sizeof(*client->ai_addr));
+        if (result < 0) {
+            dprintf(2, "%s\n", gai_strerror(result));
+            exit(1);
+        }
         ft_memset(&msgResponse, 0, sizeof(struct msghdr));
         ft_memset(buff2, 0, 65507);
         msg[0].iov_base = buff2;
@@ -160,12 +173,12 @@ void    runIcmp(struct addrinfo *client) {
         msgResponse.msg_iovlen = 1;
         msgResponse.msg_control = 0;
         msgResponse.msg_controllen = 0;
-        result = recvmsg(fdSocket, &msgResponse, MSG_WAITALL);
+        result = recvmsg(fdSocket, &msgResponse, 0);
         if (result < 0) {
             dprintf(2, "%s\n", gai_strerror(result));
             exit(1);
         }
         icmpResponse(&msgResponse);
-        usleep(1000000);
-    }
+    //    usleep(1000000);
+    //}
 }
