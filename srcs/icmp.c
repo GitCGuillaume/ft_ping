@@ -62,15 +62,16 @@ void    parseIp(struct iphdr *ip, char *buff) {
     bitMask(&ip->check, 0xFF00, buff, 8, 0);
     bitMask(&ip->check, 0xFF, buff, 0, 1);
     buff += 2;
-    bigBitMask(&ip->saddr, 0xFF000000, buff, 24, 0);
-    bigBitMask(&ip->saddr, 0xFF0000, buff, 16, 1);
-    bigBitMask(&ip->saddr, 0xFF00, buff, 8, 2);
-    bigBitMask(&ip->saddr, 0xFF, buff, 0, 3);
+    //big endianness for ipv4 inet_ntop htop
+    bigBitMask(&ip->saddr, 0xFF, buff, 0, 0);
+    bigBitMask(&ip->saddr, 0xFF00, buff, 8, 1);
+    bigBitMask(&ip->saddr, 0xFF0000, buff, 16, 2);
+    bigBitMask(&ip->saddr, 0xFF000000, buff, 24, 3);
     buff += 4;
-    bigBitMask(&ip->daddr, 0xFF000000, buff, 24, 0);
-    bigBitMask(&ip->daddr, 0xFF0000, buff, 16, 1);
-    bigBitMask(&ip->daddr, 0xFF00, buff, 8, 2);
-    bigBitMask(&ip->daddr, 0xFF, buff, 0, 3);
+    bigBitMask(&ip->daddr, 0xFF, buff, 24, 0);
+    bigBitMask(&ip->daddr, 0xFF00, buff, 16, 1);
+    bigBitMask(&ip->daddr, 0xFF0000, buff, 8, 2);
+    bigBitMask(&ip->daddr, 0xFF000000, buff, 0, 3);
 }
 
 void    parseIcmp(struct icmphdr  *icmp, char *buff) {
@@ -89,6 +90,19 @@ void    parseIcmp(struct icmphdr  *icmp, char *buff) {
     buff += 2;
 }
 
+void    displayRequest(struct iphdr *ip, struct icmphdr *icmp) {
+    char str[1000];
+    
+    ft_memset(str, 0, 1001);
+    (void)icmp;
+    //if (icmp->type == 8 || !ip || !icmp)
+      //  return ; //a voir
+    const char *ntop = inet_ntop(AF_INET, &ip->saddr, str, INET_ADDRSTRLEN);
+    
+    printf("%lu bytes from %s: icmp_seq=%u ttl=%u time=0,579 ms\n",
+        ip->tot_len - sizeof(*ip), ntop, 0, ip->ttl);
+}
+
 void    icmpResponse(struct msghdr *msg) {
     struct iovec *iov = msg->msg_iov;
     struct iphdr    ip;
@@ -104,6 +118,7 @@ void    icmpResponse(struct msghdr *msg) {
     printf("ihl: %u ver: %u tos: %u tot_len: %u id: %u\nf_off: %u ttl: %u protocol: %u\n check: %u saddr: %u daddr: %u\n"
         , ip.ihl, ip.version, ip.tos, ip.tot_len, ip.id, ip.frag_off, ip.ttl, ip.protocol, ip.check, ip.saddr, ip.daddr);
     printf("type: %u code: %u\nchecksum: %u id: %u, seq: %u\ngateway: %u\n", icmp.type, icmp.code, icmp.checksum, icmp.un.echo.id, icmp.un.echo.sequence, icmp.un.gateway);
+    displayRequest(&ip, &icmp);
 }
 
 void    sigHandler(int sig) {
@@ -124,6 +139,51 @@ void    sigHandlerInt(int sigNum) {
 void    sigHandlerAlrm(int sigNum) {
     if (sigNum != SIGALRM)
         return ;
+    struct icmphdr  icmp;
+    struct msghdr msgResponse;
+    struct iovec msg[1];
+    struct timeval tvB;
+    struct timeval tvA;
+    char buff2[65507];
+    char buff[65507];
+    int result = -1;
+    
+    //while (1) {
+    ft_memset(&icmp, 0, sizeof(struct icmphdr));
+    icmp.type = ICMP_ECHO;
+    icmp.code = 0;
+    icmp.un.echo.id = getpid();
+    icmp.un.echo.sequence = htons(i);
+    ++i;
+    printf("i:%d\n", i);
+    icmp.checksum = 0;
+    ft_memcpy(buff, &icmp, sizeof(icmp));
+    icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp));
+    ft_memcpy(buff, &icmp, sizeof(icmp));
+    alarm(1);
+    gettimeofday(&tvB, 0);
+    result = sendto(fdSocket, buff,
+        64, 0,
+        listAddr->ai_addr, sizeof(*listAddr->ai_addr));
+    if (result < 0) {
+        dprintf(2, "%s\n", gai_strerror(result));
+        exit(1);
+    }
+    ft_memset(&msgResponse, 0, sizeof(struct msghdr));
+    ft_memset(buff2, 0, 65507);
+    msg[0].iov_base = buff2;
+    msg[0].iov_len = sizeof(buff2);
+    msgResponse.msg_iov = msg;
+    msgResponse.msg_iovlen = 1;
+    result = recvmsg(fdSocket, &msgResponse, 0);
+    if (result < 0) {
+        dprintf(2, "%s\n", gai_strerror(result));
+        exit(1);
+    }
+    gettimeofday(&tvA, 0);
+    printf("tvB sec: %ld tvA sec: %ld\n", tvB.tv_sec, tvA.tv_sec);
+    printf("usec: %ld\n", tvA.tv_usec - tvB.tv_usec);
+    icmpResponse(&msgResponse);
 }
 
 /*
@@ -135,50 +195,56 @@ void    sigHandlerAlrm(int sigNum) {
 */
 
 /* (ipv4 max)65535 - (sizeof ip)20 - (sizeof icmp)8 */
-void    runIcmp(struct addrinfo *client) {
+void    runIcmp(/*struct addrinfo *client*/) {
     struct icmphdr  icmp;
     struct msghdr msgResponse;
     struct iovec msg[1];
+    struct timeval tvB;
+    struct timeval tvA;
     char buff2[65507];
     char buff[65507];
+    char str[1000];
+    ft_memset(str, 0, 1001);
     int result = -1;
-    
-    //signal(sigHandler, SIGALRM);
-    //while (1) {
-        printf("i:%d\n", i);
-        ft_memset(&icmp, 0, sizeof(struct icmphdr));
-        icmp.type = ICMP_ECHO;
-        icmp.code = 0;
-        icmp.un.echo.id = getpid();
-        icmp.un.echo.sequence = htons(i);
-        ++i;
-        icmp.checksum = 0;
-        ft_memcpy(buff, &icmp, sizeof(icmp));
-        icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp));
-        ft_memcpy(buff, &icmp, sizeof(icmp));   
-        result = sendto(fdSocket, buff,
-            64, 0,
-            client->ai_addr, sizeof(*client->ai_addr));
-        if (result < 0) {
-            dprintf(2, "%s\n", gai_strerror(result));
-            exit(1);
-        }
-        ft_memset(&msgResponse, 0, sizeof(struct msghdr));
-        ft_memset(buff2, 0, 65507);
-        msg[0].iov_base = buff2;
-        msg[0].iov_len = sizeof(buff2);
-        msgResponse.msg_name = 0;
-        msgResponse.msg_namelen = 0;
-        msgResponse.msg_iov = msg;
-        msgResponse.msg_iovlen = 1;
-        msgResponse.msg_control = 0;
-        msgResponse.msg_controllen = 0;
-        result = recvmsg(fdSocket, &msgResponse, 0);
-        if (result < 0) {
-            dprintf(2, "%s\n", gai_strerror(result));
-            exit(1);
-        }
-        icmpResponse(&msgResponse);
-    //    usleep(1000000);
-    //}
+
+    signal(SIGALRM, sigHandlerAlrm);
+    ft_memset(&icmp, 0, sizeof(struct icmphdr));
+    icmp.type = ICMP_ECHO;
+    icmp.code = 0;
+    icmp.un.echo.id = getpid();
+    icmp.un.echo.sequence = htons(i);
+    ++i;
+    printf("i:%d\n", i);
+    icmp.checksum = 0;
+    ft_memcpy(buff, &icmp, sizeof(icmp));
+    icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp));
+    ft_memcpy(buff, &icmp, sizeof(icmp));
+    alarm(1);
+    gettimeofday(&tvB, 0);
+    struct sockaddr_in *translate = (struct sockaddr_in *)listAddr->ai_addr;
+    printf("PING %s (%s): %u data bytes\n", listAddr->ai_canonname,
+        inet_ntop(AF_INET, &translate->sin_addr, str, INET_ADDRSTRLEN), 0);
+    result = sendto(fdSocket, buff,
+        64, 0,
+        listAddr->ai_addr, sizeof(*listAddr->ai_addr));
+    if (result < 0) {
+        dprintf(2, "%s\n", gai_strerror(result));
+        exit(1);
+    }
+    ft_memset(&msgResponse, 0, sizeof(struct msghdr));
+    ft_memset(buff2, 0, 65507);
+    msg[0].iov_base = buff2;
+    msg[0].iov_len = sizeof(buff2);
+    msgResponse.msg_iov = msg;
+    msgResponse.msg_iovlen = 1;
+    result = recvmsg(fdSocket, &msgResponse, MSG_WAITALL);
+    if (result < 0) {
+        dprintf(2, "%s\n", gai_strerror(result));
+        exit(1);
+    }
+    gettimeofday(&tvA, 0);
+    printf("tvB sec: %ld tvA sec: %ld\n", tvB.tv_sec, tvA.tv_sec);
+    printf("usec: %ld\n", tvA.tv_usec - tvB.tv_usec);
+    icmpResponse(&msgResponse);
+    while (1);
 }
