@@ -25,29 +25,6 @@ void printBits2(uint16_t num)
    }
    printf("\n");
 }
-/* max 16bits */
-uint16_t    checksum(uint16_t *hdr, size_t len) {
-    uint16_t sum = 0;
-
-    while (len > 1) {
-        sum += *hdr++;
-        len -= sizeof(uint16_t);
-    }
-    if (len > 0) {
-        sum += *hdr;
-    }
-    printf("sum: %u\n", sum);
-    printBits2(sum);
-    return (~sum);//complement one' from sum
-}
-
-void    bitMask(uint16_t *addr, uint16_t mask, char *buff, int nb, int jump) {
-    *addr = (*addr & ~mask) | ((*(buff + jump) << nb) & mask);
-}
-
-void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump) {
-    *addr = (*addr & ~mask) | ((*(buff + jump) << nb) & mask);
-}
 
 void    parseIp(struct iphdr *ip, char *buff) {
     ip->ihl = *buff & 0xF;
@@ -106,7 +83,7 @@ void    displayRequest(struct iphdr *ip, struct icmphdr *icmp,
     time_t seconds = tvA->tv_sec - tvB->tv_sec;
     suseconds_t microSeconds = tvA->tv_usec - tvB->tv_usec;
     float milliSeconds = (seconds*1000000.0000) + (microSeconds / 1000.0000);
-    uint16_t icmpSequence = icmp->un.echo.sequence & 0x00FF;
+    uint16_t icmpSequence = icmp->un.echo.sequence;// & 0x00FF;
     
     ft_memset(str, 0, 1001);
     //if (icmp->type == 8 || !ip || !icmp)
@@ -240,6 +217,7 @@ void    runIcmp(/*struct addrinfo *client*/) {
     ft_memcpy(buff, &icmp, sizeof(icmp));
     icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp));
     ft_memcpy(buff, &icmp, sizeof(icmp));
+    printf("icmp.checksum: %u\n", icmp.checksum);
     printf("alarm: %u\n", alarm(1));
     gettimeofday(&tvB, 0);
     struct sockaddr_in *translate = (struct sockaddr_in *)listAddr->ai_addr;
