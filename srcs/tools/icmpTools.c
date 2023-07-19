@@ -1,5 +1,14 @@
 #include "tools.h"
 
+void    exitInet(void) {
+    if  (listAddr) {
+        freeaddrinfo(listAddr);
+    }
+    if (fdSocket >= 0)
+        close(fdSocket);
+    exit(1);
+}
+
 /* max 16bits */
 uint16_t    checksum(uint16_t *hdr, size_t len) {
     size_t sum = 0;
@@ -14,7 +23,6 @@ uint16_t    checksum(uint16_t *hdr, size_t len) {
     }
     //if sum superior than 16 bits,
     //get 16's least significants bits + 16's most significant bits
-    printf("uint16_t: %lu uint32_t: %u\n", ~sum, (uint32_t)~sum);
     if (sum >> 16) {
         sum = (sum & 0xFFFF) + (sum >> 16);
     }

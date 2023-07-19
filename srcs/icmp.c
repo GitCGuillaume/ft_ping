@@ -3,10 +3,6 @@
 
 int i = 0;
 
-void    icmpRequest(void) {
-
-}
-
 void printBits(unsigned int num)
 {
    for(unsigned int bit=0;bit< sizeof(unsigned int*); bit++)
@@ -26,7 +22,11 @@ void printBits2(uint16_t num)
    printf("\n");
 }
 
+
+/* Parse using mask */
 void    parseIp(struct iphdr *ip, char *buff) {
+    if (!ip || !buff)
+        exitInet();
     ip->ihl = *buff & 0xF;
     *buff = *buff >> 4;//take half
     ip->version = *buff;
@@ -61,13 +61,17 @@ void    parseIp(struct iphdr *ip, char *buff) {
     bigBitMask(&ip->daddr, 0xFF000000, buff, 0, 3);
 }
 
+/* Parse using mask */
 void    parseIcmp(struct icmphdr  *icmp, char *buff) {
+    if (!icmp || !buff)
+        exitInet();
     icmp->type = *buff;
     ++buff;
     icmp->code = *buff;
     ++buff;
     bitMask(&icmp->checksum, 0xFF00, buff, 8, 0);
     bitMask(&icmp->checksum, 0xFF, buff, 0, 1);
+    printf("res icmp c: %u\n", icmp->checksum);
     buff += 2;
     bitMask(&icmp->un.echo.id, 0xFF00, buff, 8, 0);
     bitMask(&icmp->un.echo.id, 0xFF, buff, 0, 1);
@@ -77,111 +81,126 @@ void    parseIcmp(struct icmphdr  *icmp, char *buff) {
     buff += 2;
 }
 
-void    displayRequest(struct iphdr *ip, struct icmphdr *icmp,
+/* Display response from target using IPv4 and Icmp structure */
+void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
     struct timeval *tvB, struct timeval *tvA) {
-    char str[1000];
+    if (!ip || !icmp)
+        exitInet();
+    char str[16];
     time_t seconds = tvA->tv_sec - tvB->tv_sec;
     suseconds_t microSeconds = tvA->tv_usec - tvB->tv_usec;
-    float milliSeconds = (seconds*1000000.0000) + (microSeconds / 1000.0000);
+    float milliSeconds = (seconds*1000.0000) + (microSeconds / 1000.0000);
     uint16_t icmpSequence = icmp->un.echo.sequence;// & 0x00FF;
     
-    ft_memset(str, 0, 1001);
-    //if (icmp->type == 8 || !ip || !icmp)
-      //  return ; //a voir
+    ft_memset(str, 0, 16);
     const char *ntop = inet_ntop(AF_INET, &ip->saddr, str, INET_ADDRSTRLEN);
-    //printBits(icmpSequence);
+    if (!ntop)
+        exitInet();
     printf("%lu bytes from %s: icmp_seq=%u ttl=%u time=%f ms\n",
         (ip->tot_len - sizeof(*ip)) + sizeof(*icmp), ntop, icmpSequence, ip->ttl, milliSeconds);
 }
 
+/*
+    Start of reading ping response from targetted client
+    Source : https://en.wikipedia.org/wiki/Checksum
+     To validate a message,
+        the receiver adds all the words in the same manner,
+        including the checksum;
+        if the result is not a word full of zeros, an error must have occurred
+*/
 void    icmpResponse(struct msghdr *msg, struct timeval *tvB, struct timeval *tvA) {
+    if (!msg || !tvB || !tvA)
+        exitInet();
     struct iovec *iov = msg->msg_iov;
     struct iphdr    ip;
     struct icmphdr  icmp;
     char *buff = iov->iov_base;
-
-(void)tvB;(void)tvA;
+    char buffChecksum[ECHO_REQUEST_B_SENT];
+    uint16_t resultChecksum;
     ft_memset(&ip, 0, sizeof(ip));
     ft_memset(&icmp, 0, sizeof(icmp));
+    ft_memset(buffChecksum, 0, ECHO_REQUEST_B_SENT);
+    /* Get IPv4 from buffer  */
     parseIp(&ip, buff);
     buff += 20;
+    /* Get Icmp from buffer */
     parseIcmp(&icmp, buff);
-   // printf("\n");
-    //printf("ihl: %u ver: %u tos: %u tot_len: %u id: %u\nf_off: %u ttl: %u protocol: %u\n check: %u saddr: %u daddr: %u\n"
-   //     , ip.ihl, ip.version, ip.tos, ip.tot_len, ip.id, ip.frag_off, ip.ttl, ip.protocol, ip.check, ip.saddr, ip.daddr);
-   // printf("type: %u code: %u\nchecksum: %u id: %u, seq: %u\ngateway: %u\n", icmp.type, icmp.code, icmp.checksum, icmp.un.echo.id, icmp.un.echo.sequence, icmp.un.gateway);
-    displayRequest(&ip, &icmp, tvB, tvA);
+    ft_memcpy(buffChecksum, &icmp, sizeof(icmp));
+    //check source in commentary
+    resultChecksum = checksum((uint16_t *)buffChecksum, sizeof(icmp));
+    if (resultChecksum != 0) {
+        printf("resultChecksum: %hu\ncode: icmp.code: %hu type: %hu\n", resultChecksum, icmp.code, icmp.type);
+    }
+    displayResponse(&ip, &icmp, tvB, tvA);
 }
 
-void    sigHandler(int sig) {
-    printf("\na");
-    if (sig != SIGALRM)
-        return ;
-    
-    
+/* Ger request response */
+void    icmpRequest(struct timeval *tvB, struct msghdr *msgResponse) {
+    struct timeval tvA;
+    int result = -1;
 
-    
+    result = recvmsg(fdSocket, msgResponse, 0);
+    if (result < 0) {
+        freeaddrinfo(listAddr);
+        dprintf(2, "%s\n", gai_strerror(result));
+        if (fdSocket >= 0)
+            close(fdSocket);
+        exit(1);
+    }
+    if (gettimeofday(&tvA, 0) < 0)
+        exitInet();
+    icmpResponse(msgResponse, tvB, &tvA);
 }
 
-void    sigHandlerInt(int sigNum) {
-    if (sigNum != SIGINT)
-        return ;
-}
-
+/* send ping using signal alarm */
 void    sigHandlerAlrm(int sigNum) {
     if (sigNum != SIGALRM)
         return ;
+    if (!listAddr)
+        exitInet();
     struct icmphdr  icmp;
+    struct timeval tvB;
     struct msghdr msgResponse;
     struct iovec msg[1];
-    struct timeval tvB;
-    struct timeval tvA;
-    char buff2[65507];
+    char buff2[BUFF2_SIZE];
     char buff[ECHO_REQUEST_B_SENT];
     int result = -1;
     
-    //while (1) {
+    //init part
     ft_memset(&icmp, 0, sizeof(struct icmphdr));
+    ft_memset(&msgResponse, 0, sizeof(struct msghdr));
+    ft_memset(buff, 0, ECHO_REQUEST_B_SENT);
+    ft_memset(buff2, 0, BUFF2_SIZE);
     icmp.type = ICMP_ECHO;
     icmp.code = 0;
     icmp.un.echo.id = getpid();
     icmp.un.echo.sequence = htons(i);
     ++i;
-   // printf("i:%d\n", i);
     icmp.checksum = 0;
     ft_memcpy(buff, &icmp, sizeof(icmp));
     icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp));
     ft_memcpy(buff, &icmp, sizeof(icmp));
-    printf("alarm: %u\n", alarm(1));
-    gettimeofday(&tvB, 0);
-    result = sendto(fdSocket, buff,
-        ECHO_REQUEST_B_SENT, 0,
-        listAddr->ai_addr, sizeof(*listAddr->ai_addr));
-    if (result < 0) {
-        dprintf(2, "%s\n", gai_strerror(result));
-        exit(1);
+    //init vars part
+    alarm(1);
+    //get time before substract
+    if (gettimeofday(&tvB, 0) < 0) {
+        exitInet();
     }
-    ft_memset(&msgResponse, 0, sizeof(struct msghdr));
-    ft_memset(buff2, 0, 65507);
     msg[0].iov_base = buff2;
     msg[0].iov_len = sizeof(buff2);
     msgResponse.msg_iov = msg;
     msgResponse.msg_iovlen = 1;
-    printf("waiting recv...\n");
-    result = recvmsg(fdSocket, &msgResponse, 0);
+    result = sendto(fdSocket, buff,
+        ECHO_REQUEST_B_SENT, 0,
+        listAddr->ai_addr, sizeof(*listAddr->ai_addr));
     if (result < 0) {
+        freeaddrinfo(listAddr);
         dprintf(2, "%s\n", gai_strerror(result));
+        if (fdSocket >= 0)
+            close(fdSocket);
         exit(1);
     }
-    printf("Got recv...\n");
-    gettimeofday(&tvA, 0);
-    /*time_t seconds = tvA.tv_sec - tvB.tv_sec;
-    suseconds_t microSeconds = tvA.tv_usec - tvB.tv_usec;
-    float milliSeconds = (seconds*1000000.0000) + (microSeconds / 1000.0000);
-    //long milliSeconds = (seconds * 1000000) + (microSeconds / 1000);
-    printf("tvB sec - tvA sec: %f\n", (double)seconds);
-    printf("usec: %f\n",  milliSeconds);*/
-    icmpResponse(&msgResponse, &tvB, &tvA);
+    icmpRequest(&tvB, &msgResponse);
 }
 
 /*
@@ -194,59 +213,62 @@ void    sigHandlerAlrm(int sigNum) {
 
 /* (ipv4 max)65535 - (sizeof ip)20 - (sizeof icmp)8 */
 void    runIcmp(/*struct addrinfo *client*/) {
+    if (!listAddr)
+        exitInet();
+    struct sockaddr_in *translate = (struct sockaddr_in *)listAddr->ai_addr;
     struct icmphdr  icmp;
     struct msghdr msgResponse;
     struct iovec msg[1];
     struct timeval tvB;
-    struct timeval tvA;
-    char buff2[65507];
+    
     char buff[ECHO_REQUEST_B_SENT];
-    char str[1000];
-    ft_memset(str, 0, 1001);
+    char buff2[BUFF2_SIZE];
+    char str[16];
     int result = -1;
 
-    signal(SIGALRM, sigHandlerAlrm);
+    if (signal(SIGALRM, sigHandlerAlrm) == SIG_ERR)
+        exitInet();
+    //init vars part
+    ft_memset(str, 0, 16);
     ft_memset(&icmp, 0, sizeof(struct icmphdr));
+    ft_memset(&msgResponse, 0, sizeof(struct msghdr));
+    ft_memset(buff, 0, ECHO_REQUEST_B_SENT);
+    ft_memset(buff2, 0, BUFF2_SIZE);
     icmp.type = ICMP_ECHO;
     icmp.code = 0;
     icmp.un.echo.id = getpid();
     icmp.un.echo.sequence = htons(i);
     ++i;
-  //  printf("i:%d\n", i);
     icmp.checksum = 0;
     ft_memcpy(buff, &icmp, sizeof(icmp));
     icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp));
     ft_memcpy(buff, &icmp, sizeof(icmp));
-    printf("icmp.checksum: %u\n", icmp.checksum);
-    printf("alarm: %u\n", alarm(1));
-    gettimeofday(&tvB, 0);
-    struct sockaddr_in *translate = (struct sockaddr_in *)listAddr->ai_addr;
-    printf("PING %s (%s): %u data bytes\n", listAddr->ai_canonname,
-        inet_ntop(AF_INET, &translate->sin_addr, str, INET_ADDRSTRLEN), ECHO_REQUEST_B_SENT);
-    result = sendto(fdSocket, buff,
-        ECHO_REQUEST_B_SENT, 0,
-        listAddr->ai_addr, sizeof(*listAddr->ai_addr));
-    if (result < 0) {
-        dprintf(2, "%s\n", gai_strerror(result));
-        exit(1);
+    //call another ping
+    alarm(1);
+    //get time before substract
+    if (gettimeofday(&tvB, 0) < 0) {
+        exitInet();
     }
-    ft_memset(&msgResponse, 0, sizeof(struct msghdr));
-    ft_memset(buff2, 0, 65507);
+    const char *inetResult = inet_ntop(AF_INET, &translate->sin_addr, str, INET_ADDRSTRLEN);
+    if (!inetResult) {
+        exitInet();
+    }
     msg[0].iov_base = buff2;
     msg[0].iov_len = sizeof(buff2);
     msgResponse.msg_iov = msg;
     msgResponse.msg_iovlen = 1;
-    result = recvmsg(fdSocket, &msgResponse, MSG_WAITALL);
+    printf("PING %s (%s): %u data bytes\n", listAddr->ai_canonname,
+        inetResult, ECHO_REQUEST_B_SENT);
+    result = sendto(fdSocket, buff,
+        ECHO_REQUEST_B_SENT, 0,
+        listAddr->ai_addr, sizeof(*listAddr->ai_addr));
     if (result < 0) {
+        freeaddrinfo(listAddr);
         dprintf(2, "%s\n", gai_strerror(result));
+        if (fdSocket >= 0)
+            close(fdSocket);
         exit(1);
     }
-    gettimeofday(&tvA, 0);
-    /*time_t seconds = tvA.tv_sec - tvB.tv_sec;
-    suseconds_t microSeconds = tvA.tv_usec - tvB.tv_usec;
-    float milliSeconds = (seconds*1000000.0000) + (microSeconds / 1000.0000);
-    printf("tvB sec - tvA sec: %f\n", (double)seconds);
-    printf("usec: %f\n",  milliSeconds);*/
-    icmpResponse(&msgResponse, &tvB, &tvA);
+    icmpRequest(&tvB, &msgResponse);
     while (1);
 }

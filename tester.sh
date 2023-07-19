@@ -91,6 +91,9 @@ echo "error code = $?"
 echo "${RED}ping 172.1368${WHITE}"
 ping 172.1368
 
+echo "${RED}ping -v 192.168.1.56${WHITE}"
+ping -v 192.168.1.56
+
 #ping host unreachable at home
 echo "${RED}ping host unreachable${WHITE}"
 ping 192.168.1.2
