@@ -86,18 +86,18 @@ void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
     struct timeval *tvB, struct timeval *tvA) {
     if (!ip || !icmp)
         exitInet();
-    char str[16];
+    //char str[16];
     time_t seconds = tvA->tv_sec - tvB->tv_sec;
     suseconds_t microSeconds = tvA->tv_usec - tvB->tv_usec;
     float milliSeconds = (seconds*1000.0000) + (microSeconds / 1000.0000);
     uint16_t icmpSequence = icmp->un.echo.sequence;// & 0x00FF;
     
-    ft_memset(str, 0, 16);
-    const char *ntop = inet_ntop(AF_INET, &ip->saddr, str, INET_ADDRSTRLEN);
-    if (!ntop)
-        exitInet();
-    printf("%lu bytes from %s: icmp_seq=%u ttl=%u time=%f ms\n",
-        (ip->tot_len - sizeof(*ip)) + sizeof(*icmp), ntop, icmpSequence, ip->ttl, milliSeconds);
+    //ft_memset(str, 0, 16);
+    //const char *ntop = inet_ntop(AF_INET, &ip->saddr, str, INET_ADDRSTRLEN);
+    //if (!ntop)
+    //    exitInet();
+    printf("icmp_seq=%u ttl=%u time=%f ms\n",
+        icmpSequence, ip->ttl, milliSeconds);
 }
 
 /*
@@ -117,6 +117,9 @@ void    icmpResponse(struct msghdr *msg, struct timeval *tvB, struct timeval *tv
     char *buff = iov->iov_base;
     char buffChecksum[ECHO_REQUEST_B_SENT];
     uint16_t resultChecksum;
+    char str[16];
+
+    ft_memset(str, 0, 16);
     ft_memset(&ip, 0, sizeof(ip));
     ft_memset(&icmp, 0, sizeof(icmp));
     ft_memset(buffChecksum, 0, ECHO_REQUEST_B_SENT);
@@ -128,10 +131,17 @@ void    icmpResponse(struct msghdr *msg, struct timeval *tvB, struct timeval *tv
     ft_memcpy(buffChecksum, &icmp, sizeof(icmp));
     //check source in commentary
     resultChecksum = checksum((uint16_t *)buffChecksum, sizeof(icmp));
+    const char *ntop = inet_ntop(AF_INET, &ip.saddr, str, INET_ADDRSTRLEN);
+    if (!ntop)
+        exitInet();
+    printf("%lu bytes from %s: ",
+        (ip.tot_len - sizeof(ip)) + sizeof(icmp), ntop);
     if (resultChecksum != 0) {
         printf("resultChecksum: %hu\ncode: icmp.code: %hu type: %hu\n", resultChecksum, icmp.code, icmp.type);
+        getIcmpCode(&icmp);
+    } else {
+        displayResponse(&ip, &icmp, tvB, tvA);
     }
-    displayResponse(&ip, &icmp, tvB, tvA);
 }
 
 /* Ger request response */

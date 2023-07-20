@@ -80,7 +80,7 @@ echo "${RED}ping 999.999.999.999 ${WHITE}"
 ping 999.999.999.999
 echo "error code = $?"
 
-echo "${RED}ping -v localhost localhost${WHITE}"
+echo "${RED}localost 456${WHITE}"
 ping -v localost 456
 echo "error code = $? (must be 1)"
 

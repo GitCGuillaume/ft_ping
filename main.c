@@ -14,11 +14,15 @@ static void    sigHandlerInt(int sigNum) {
     exit(0);
 }
 
+/* code /usr/include/x86_64-linux-gnu/bits/in.h
+    Options for use with `getsockopt' and `setsockopt' at the IP level.
+    IP_TTL...
+ */
 static int openSocket(/*struct addrinfo *listAddr*/) {
     if (!listAddr)
         exit(EXIT_FAILURE);
     struct addrinfo *mem = listAddr;
-    socklen_t    ttl = 3;
+    int    ttl = 255;
     int     fd = -1;
 
     while (mem)

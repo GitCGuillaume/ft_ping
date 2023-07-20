@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include "netinet/ip_icmp.h"
 #include <netinet/in.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -15,6 +16,7 @@
 
 #define TRUE 1
 #define FALSE 0
+#define NONE 20
 
 struct s_flags {
     char v;
