@@ -103,6 +103,9 @@ void    addressReply(uint8_t code) {
 /*
     code /usr/include/netinet/ip_icmp.h
     NONE = no code
+    https://datatracker.ietf.org/doc/html/rfc1122#page-38
+    If an ICMP message of unknown type is received, it MUST be
+         silently discarded.
 */
 const char *getIcmpCode(struct icmphdr *icmp) {
     //list of icmp macro
