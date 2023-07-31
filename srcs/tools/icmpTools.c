@@ -41,14 +41,14 @@ void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump) 
 
 void    destUnreach(uint8_t code) {
     const char *arr[16] = {
-        "network unreachable", "host unreachable", "protocol unreachable",
-        "port unreachable", "fragmentation needed/set", "source route failed",
-        "net unknown", "host unknown", "host isolated",
-        "communication with network is adminitratively prohibited",
-        "communication with host is adminitratively prohibited",
-        "network unreachable for type of service",
-        "host unreachable for type of service",
-        "packet filtered", "precedence violation", "precedence cut off"
+        "Destination Net Unreachable", "Destination Host Unreachable", "Destination Protocol Unreachable",
+        "Destination Port Unreachable", "Fragmentation needed and DF set", "Source Route Failed",
+        "Network Unknown", "Host Unknown", "Host Isolated",
+        "Communication With Network Is Adminitratively Prohibited",
+        "Communication With Host Is Adminitratively Prohibited",
+        "Destination Network Unreachable At This TOS",
+        "Destination Host Unreachable At This TOS",
+        "Packet Filtered", "Precedence Violation", "Precedence Cutoff"
     };
     int i;
 
@@ -57,7 +57,7 @@ void    destUnreach(uint8_t code) {
             break ;
     }
     if (i != 16)
-        printf("%s %s\n", "Destination", arr[i]);
+        printf("%s\n", arr[i]);
 }
 
 void    sourceQuench(uint8_t code) {
