@@ -60,6 +60,7 @@ void    destUnreach(uint8_t code) {
         printf("%s\n", arr[i]);
 }
 
+/* Deprecated */
 void    sourceQuench(uint8_t code) {
     printf("%s\n", "Source Quench");
 }
@@ -69,7 +70,18 @@ void    redirect(uint8_t code) {
 }
 
 void    timeExceed(uint8_t code) {
+    const char  *arr[2] = {
+        "Time to live exceeded",
+        "Frag reassembly time exceeded"
+    }
+    int i;
 
+    for (i = 0; i < 2; ++i) {
+        if (i == code)
+            break ;
+    }
+    if (i != 2)
+        printf("%s\n", arr[i])
 }
 
 void    paramProb(uint8_t code) {
