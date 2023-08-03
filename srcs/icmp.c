@@ -108,36 +108,52 @@ void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
         including the checksum;
         if the result is not a word full of zeros, an error must have occurred
 */
-void    icmpResponse(struct msghdr *msg, struct timeval *tvB, struct timeval *tvA) {
+void    icmpResponse(struct msghdr *msg, struct timeval *tvB,
+    struct timeval *tvA, ssize_t recv) {
     if (!msg || !tvB || !tvA)
         exitInet();
     struct iovec *iov = msg->msg_iov;
     struct iphdr    ip;
     struct icmphdr  icmp;
     char *buff = iov->iov_base;
-    char buffChecksum[ECHO_REQUEST_B_SENT];
+    char buffChecksum[BUFF2_SIZE];
     uint16_t resultChecksum;
     char str[16];
 
     ft_memset(str, 0, 16);
     ft_memset(&ip, 0, sizeof(ip));
     ft_memset(&icmp, 0, sizeof(icmp));
-    ft_memset(buffChecksum, 0, ECHO_REQUEST_B_SENT);
+    ft_memset(buffChecksum, 0, BUFF2_SIZE);
     /* Get IPv4 from buffer  */
     parseIp(&ip, buff);
     buff += 20;
     /* Get Icmp from buffer */
     parseIcmp(&icmp, buff);
+    buff += 8;
+    printf("CHE: %x\n", icmp.checksum);
+
     ft_memcpy(buffChecksum, &icmp, sizeof(icmp));
-    //check source in commentary
+    ft_memcpy(buffChecksum + sizeof(icmp), buff, sizeof(*tvB));
+    //for(int i = 0; i < ECHO_REQUEST_B_SENT; ++i)
+    //    printf("i: %x\n", buff[i]);
     resultChecksum = checksum((uint16_t *)buffChecksum, sizeof(icmp));
+    //ft_memcpy(buffChecksum, &icmp, sizeof(icmp));
+    //ft_memcpy(buffChecksum + sizeof(icmp), tvB, sizeof(*tvB));
+
+    //ft_memcpy(buffChecksum, &icmp, sizeof(icmp));
+    //ft_memcpy(buffChecksum + 8, tvB, sizeof(*tvB));
+    //check source in commentary
+    //printf("dsqdsqqsd:%u dd:%u %u\n", icmp.type, icmp.code, icmp.checksum);
+    //resultChecksum = checksum((uint16_t *)buffChecksum, sizeof(icmp) + sizeof(*tvB));
     const char *ntop = inet_ntop(AF_INET, &ip.saddr, str, INET_ADDRSTRLEN);
     if (!ntop)
         exitInet();
     printf("%lu bytes from %s: ",
-        (ip.tot_len - sizeof(ip)) + sizeof(icmp), ntop);
+        recv, ntop);
+    printf("resultC: %x\n", resultChecksum);
     if (resultChecksum != 0) {
         printf("resultChecksum: %hu\ncode: icmp.code: %hu type: %hu\n", resultChecksum, icmp.code, icmp.type);
+        printf("id: %u seq: %u\n", icmp.un.echo.id, icmp.un.echo.sequence);
         getIcmpCode(&icmp);
     } else {
         displayResponse(&ip, &icmp, tvB, tvA);
@@ -150,6 +166,7 @@ void    icmpRequest(struct timeval *tvB, struct msghdr *msgResponse) {
     int result = -1;
 
     result = recvmsg(fdSocket, msgResponse, 0);
+    printf("RES: %u\n", result);
     if (result < 0) {
         freeaddrinfo(listAddr);
         dprintf(2, "%s\n", gai_strerror(result));
@@ -159,7 +176,7 @@ void    icmpRequest(struct timeval *tvB, struct msghdr *msgResponse) {
     }
     if (gettimeofday(&tvA, 0) < 0)
         exitInet();
-    icmpResponse(msgResponse, tvB, &tvA);
+    icmpResponse(msgResponse, tvB, &tvA, result);
 }
 
 /* send ping using signal alarm */
@@ -250,19 +267,26 @@ void    runIcmp(/*struct addrinfo *client*/) {
     icmp.un.echo.sequence = htons(i);
     ++i;
     icmp.checksum = 0;
-    ft_memcpy(buff, &icmp, sizeof(icmp));
-    icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp));
-    ft_memcpy(buff, &icmp, sizeof(icmp));
-    //call another ping
-    alarm(1);
     //get time before substract
     if (gettimeofday(&tvB, 0) < 0) {
         exitInet();
     }
+    ft_memcpy(buff, &icmp, sizeof(icmp));
+    ft_memcpy(buff + sizeof(icmp), &tvB, sizeof(tvB));
+    //for(int i = 0; i < ECHO_REQUEST_B_SENT; ++i)
+    //    printf("i: %x\n", buff[i]);
+    icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp)+sizeof(tvB));
+    ft_memcpy(buff, &icmp, sizeof(icmp));
+    //ft_memcpy(buff + sizeof(icmp), &tvB, sizeof(tvB));
+    //call another ping
+    alarm(1);
     const char *inetResult = inet_ntop(AF_INET, &translate->sin_addr, str, INET_ADDRSTRLEN);
     if (!inetResult) {
         exitInet();
     }
+    printf("sdqs: %lu\n", sizeof(struct icmphdr));
+    printf("un: %lu\n", sizeof(icmp.un));
+    printf("sizeof: %lu\n", sizeof(struct iphdr));
     msg[0].iov_base = buff2;
     msg[0].iov_len = sizeof(buff2);
     msgResponse.msg_iov = msg;

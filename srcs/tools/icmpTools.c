@@ -12,8 +12,9 @@ void    exitInet(void) {
 /* max 16bits */
 uint16_t    checksum(uint16_t *hdr, size_t len) {
     size_t sum = 0;
-
+printf("LEN: %lu\n", len);
     while (len > 1) {
+        printf("*hdr:%u\n", *hdr);
         sum += *hdr++;
         len -= sizeof(uint16_t);
     }
@@ -23,7 +24,7 @@ uint16_t    checksum(uint16_t *hdr, size_t len) {
     }
     //if sum superior than 16 bits,
     //get 16's least significants bits + 16's most significant bits
-    if (sum >> 16) {
+    while (sum >> 16) {
         sum = (sum & 0xFFFF) + (sum >> 16);
     }
     return (~sum); //complement one' from sum
@@ -73,7 +74,7 @@ void    timeExceed(uint8_t code) {
     const char  *arr[2] = {
         "Time to live exceeded",
         "Frag reassembly time exceeded"
-    }
+    };
     int i;
 
     for (i = 0; i < 2; ++i) {
@@ -81,7 +82,7 @@ void    timeExceed(uint8_t code) {
             break ;
     }
     if (i != 2)
-        printf("%s\n", arr[i])
+        printf("%s\n", arr[i]);
 }
 
 void    paramProb(uint8_t code) {
@@ -119,8 +120,10 @@ void    addressReply(uint8_t code) {
     If an ICMP message of unknown type is received, it MUST be
          silently discarded.
 */
-const char *getIcmpCode(struct icmphdr *icmp) {
+void getIcmpCode(struct icmphdr *icmp) {
     //list of icmp macro
+    if (!icmp)
+        return ;
     unsigned int types[19] = {
         NONE, NONE, NONE,
         ICMP_DEST_UNREACH, ICMP_SOURCE_QUENCH,
@@ -140,14 +143,14 @@ const char *getIcmpCode(struct icmphdr *icmp) {
     };
     void    (*functionCall)(uint8_t) = NULL;
     unsigned int i;
-
+    printf("ty: %u\n", icmp->code);
     for (i = 0; i < 20; ++i) {
         if (icmp->type == types[i]
-            && i != NONE) {
+            && types[i] != NONE) {
             functionCall = functionArray[i];
+            break ;
         }
     }
     if (functionCall)
            functionCall(icmp->code);
-    return ("");
 }
