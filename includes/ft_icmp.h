@@ -5,11 +5,11 @@
 #include <sys/time.h>
 #include "tools.h"
 
-#ifndef ECHO_REQUEST_B_SENT
-# define ECHO_REQUEST_B_SENT 56 /* -s The default is 56 */
+#ifndef ECHO_REQUEST_SIZE
+# define ECHO_REQUEST_SIZE 56 /* -s The default is 56 */
 #endif
-#ifndef BUFF2_SIZE
-# define BUFF2_SIZE 64 /* which translates into 64 ICMP data bytes, taking the 8 bytes of ICMP header data into account.*/
+#ifndef ECHO_REPLY_SIZE
+# define ECHO_REPLY_SIZE 64 /* which translates into 64 ICMP data bytes, taking the 8 bytes of ICMP header data into account.*/
 #endif
 
 uint16_t    checksum(uint16_t *hdr, size_t len);

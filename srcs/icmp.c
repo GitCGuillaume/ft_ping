@@ -116,27 +116,30 @@ void    icmpResponse(struct msghdr *msg, struct timeval *tvB,
     struct iphdr    ip;
     struct icmphdr  icmp;
     char *buff = iov->iov_base;
-    char buffChecksum[BUFF2_SIZE];
+    //char buffChecksum[ECHO_REPLY_SIZE];
     uint16_t resultChecksum;
     char str[16];
 
     ft_memset(str, 0, 16);
     ft_memset(&ip, 0, sizeof(ip));
     ft_memset(&icmp, 0, sizeof(icmp));
-    ft_memset(buffChecksum, 0, BUFF2_SIZE);
+    //ft_memset(buffChecksum, 0, ECHO_REPLY_SIZE);
     /* Get IPv4 from buffer  */
     parseIp(&ip, buff);
     buff += 20;
     /* Get Icmp from buffer */
+    resultChecksum = checksum((uint16_t *)buff, sizeof(icmp) + sizeof(struct timeval) + 32);
     parseIcmp(&icmp, buff);
-    buff += 8;
-    printf("CHE: %x\n", icmp.checksum);
+    printf("res chk: %x icmp.seq: %u\n", resultChecksum, icmp.un.echo.sequence);
+    //printf("sizeof ip: %lu     CHE: %x\n", sizeof(ip), icmp.checksum);
 
-    ft_memcpy(buffChecksum, &icmp, sizeof(icmp));
-    ft_memcpy(buffChecksum + sizeof(icmp), buff, sizeof(*tvB));
-    //for(int i = 0; i < ECHO_REQUEST_B_SENT; ++i)
+    //ft_memcpy(buffChecksum, &icmp, sizeof(icmp));
+    //ft_memcpy(buffChecksum + sizeof(icmp), buff, sizeof(*tvB));
+    //buff += sizeof(*tvB);
+    //ft_memcpy(buffChecksum + sizeof(icmp) + sizeof(*tvB), buff, 32);
+    //for(int i = 0; i < ECHO_REQUEST_SIZE; ++i)
     //    printf("i: %x\n", buff[i]);
-    resultChecksum = checksum((uint16_t *)buffChecksum, sizeof(icmp));
+    //resultChecksum = checksum((uint16_t *)buffChecksum, sizeof(icmp) + 32);
     //ft_memcpy(buffChecksum, &icmp, sizeof(icmp));
     //ft_memcpy(buffChecksum + sizeof(icmp), tvB, sizeof(*tvB));
 
@@ -150,7 +153,7 @@ void    icmpResponse(struct msghdr *msg, struct timeval *tvB,
         exitInet();
     printf("%lu bytes from %s: ",
         recv, ntop);
-    printf("resultC: %x\n", resultChecksum);
+    printf("resultC: %x chk: %x\n", resultChecksum, icmp.checksum);
     if (resultChecksum != 0) {
         printf("resultChecksum: %hu\ncode: icmp.code: %hu type: %hu\n", resultChecksum, icmp.code, icmp.type);
         printf("id: %u seq: %u\n", icmp.un.echo.id, icmp.un.echo.sequence);
@@ -189,36 +192,45 @@ void    sigHandlerAlrm(int sigNum) {
     struct timeval tvB;
     struct msghdr msgResponse;
     struct iovec msg[1];
-    char buff2[BUFF2_SIZE];
-    char buff[ECHO_REQUEST_B_SENT];
+    char buff2[ECHO_REPLY_SIZE];
+    char buff[ECHO_REQUEST_SIZE];
     int result = -1;
     
     //init part
     ft_memset(&icmp, 0, sizeof(struct icmphdr));
     ft_memset(&msgResponse, 0, sizeof(struct msghdr));
-    ft_memset(buff, 0, ECHO_REQUEST_B_SENT);
-    ft_memset(buff2, 0, BUFF2_SIZE);
+    ft_memset(buff, 0, ECHO_REQUEST_SIZE);
+    ft_memset(buff2, 0, ECHO_REPLY_SIZE);
     icmp.type = ICMP_ECHO;
     icmp.code = 0;
     icmp.un.echo.id = getpid();
     icmp.un.echo.sequence = htons(i);
     ++i;
     icmp.checksum = 0;
+    if (gettimeofday(&tvB, 0) < 0) {
+        exitInet();
+    }
     ft_memcpy(buff, &icmp, sizeof(icmp));
-    icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp));
+    ft_memcpy(buff + sizeof(icmp), &tvB, sizeof(tvB));
+    uint8_t j = sizeof(icmp) + sizeof(tvB);
+    const uint8_t max = j + 32;
+    char value = 0;
+    for (; j < max; ++j)
+        buff[j] = value++;
+    icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp) + sizeof(tvB) + 32);
     ft_memcpy(buff, &icmp, sizeof(icmp));
     //init vars part
     alarm(1);
     //get time before substract
-    if (gettimeofday(&tvB, 0) < 0) {
-        exitInet();
-    }
+    //if (gettimeofday(&tvB, 0) < 0) {
+    //    exitInet();
+   // }
     msg[0].iov_base = buff2;
     msg[0].iov_len = sizeof(buff2);
     msgResponse.msg_iov = msg;
     msgResponse.msg_iovlen = 1;
     result = sendto(fdSocket, buff,
-        ECHO_REQUEST_B_SENT, 0,
+        ECHO_REQUEST_SIZE, 0,
         listAddr->ai_addr, sizeof(*listAddr->ai_addr));
     if (result < 0) {
         freeaddrinfo(listAddr);
@@ -247,9 +259,8 @@ void    runIcmp(/*struct addrinfo *client*/) {
     struct msghdr msgResponse;
     struct iovec msg[1];
     struct timeval tvB;
-    
-    char buff[ECHO_REQUEST_B_SENT];
-    char buff2[BUFF2_SIZE];
+    char buff[ECHO_REQUEST_SIZE];
+    char buff2[ECHO_REPLY_SIZE];
     char str[16];
     int result = -1;
 
@@ -259,8 +270,8 @@ void    runIcmp(/*struct addrinfo *client*/) {
     ft_memset(str, 0, 16);
     ft_memset(&icmp, 0, sizeof(struct icmphdr));
     ft_memset(&msgResponse, 0, sizeof(struct msghdr));
-    ft_memset(buff, 0, ECHO_REQUEST_B_SENT);
-    ft_memset(buff2, 0, BUFF2_SIZE);
+    ft_memset(buff, 0, ECHO_REQUEST_SIZE);
+    ft_memset(buff2, 0, ECHO_REPLY_SIZE);
     icmp.type = ICMP_ECHO;
     icmp.code = 0;
     icmp.un.echo.id = getpid();
@@ -273,11 +284,13 @@ void    runIcmp(/*struct addrinfo *client*/) {
     }
     ft_memcpy(buff, &icmp, sizeof(icmp));
     ft_memcpy(buff + sizeof(icmp), &tvB, sizeof(tvB));
-    //for(int i = 0; i < ECHO_REQUEST_B_SENT; ++i)
-    //    printf("i: %x\n", buff[i]);
-    icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp)+sizeof(tvB));
+    uint8_t j = sizeof(icmp) + sizeof(tvB);
+    const uint8_t max = j + 32;
+    char value = 0;
+    for (; j < max; ++j)
+        buff[j] = value++;
+    icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp) + sizeof(tvB) + 32);
     ft_memcpy(buff, &icmp, sizeof(icmp));
-    //ft_memcpy(buff + sizeof(icmp), &tvB, sizeof(tvB));
     //call another ping
     alarm(1);
     const char *inetResult = inet_ntop(AF_INET, &translate->sin_addr, str, INET_ADDRSTRLEN);
@@ -292,9 +305,9 @@ void    runIcmp(/*struct addrinfo *client*/) {
     msgResponse.msg_iov = msg;
     msgResponse.msg_iovlen = 1;
     printf("PING %s (%s): %u data bytes\n", listAddr->ai_canonname,
-        inetResult, ECHO_REQUEST_B_SENT);
+        inetResult, ECHO_REQUEST_SIZE);
     result = sendto(fdSocket, buff,
-        ECHO_REQUEST_B_SENT, 0,
+        ECHO_REQUEST_SIZE, 0,
         listAddr->ai_addr, sizeof(*listAddr->ai_addr));
     if (result < 0) {
         freeaddrinfo(listAddr);

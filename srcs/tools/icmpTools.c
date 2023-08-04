@@ -14,7 +14,7 @@ uint16_t    checksum(uint16_t *hdr, size_t len) {
     size_t sum = 0;
 printf("LEN: %lu\n", len);
     while (len > 1) {
-        printf("*hdr:%u\n", *hdr);
+        printf("*hdr:%x\n", *hdr);
         sum += *hdr++;
         len -= sizeof(uint16_t);
     }
@@ -24,7 +24,7 @@ printf("LEN: %lu\n", len);
     }
     //if sum superior than 16 bits,
     //get 16's least significants bits + 16's most significant bits
-    while (sum >> 16) {
+    if (sum >> 16) {
         sum = (sum & 0xFFFF) + (sum >> 16);
     }
     return (~sum); //complement one' from sum
