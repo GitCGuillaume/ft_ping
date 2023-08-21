@@ -6,10 +6,10 @@
 #include "tools.h"
 
 #ifndef ECHO_REQUEST_SIZE
-# define ECHO_REQUEST_SIZE 56 /* -s The default is 56 */
+# define ECHO_REQUEST_SIZE 64 /* -s The default is 56 */
 #endif
 #ifndef ECHO_REPLY_SIZE
-# define ECHO_REPLY_SIZE 64 /* which translates into 64 ICMP data bytes, taking the 8 bytes of ICMP header data into account.*/
+# define ECHO_REPLY_SIZE 84 /* which translates into 64 ICMP data bytes, taking the 8 bytes of ICMP header data into account.*/
 #endif
 
 uint16_t    checksum(uint16_t *hdr, size_t len);

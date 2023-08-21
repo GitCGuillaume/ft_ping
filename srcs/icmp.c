@@ -128,7 +128,7 @@ void    icmpResponse(struct msghdr *msg, struct timeval *tvB,
     parseIp(&ip, buff);
     buff += 20;
     /* Get Icmp from buffer */
-    resultChecksum = checksum((uint16_t *)buff, sizeof(icmp) + sizeof(struct timeval) + 32);
+    resultChecksum = checksum((uint16_t *)buff, sizeof(icmp) + sizeof(*tvB) + 40);
     parseIcmp(&icmp, buff);
     printf("res chk: %x icmp.seq: %u\n", resultChecksum, icmp.un.echo.sequence);
     //printf("sizeof ip: %lu     CHE: %x\n", sizeof(ip), icmp.checksum);
@@ -136,7 +136,7 @@ void    icmpResponse(struct msghdr *msg, struct timeval *tvB,
     //ft_memcpy(buffChecksum, &icmp, sizeof(icmp));
     //ft_memcpy(buffChecksum + sizeof(icmp), buff, sizeof(*tvB));
     //buff += sizeof(*tvB);
-    //ft_memcpy(buffChecksum + sizeof(icmp) + sizeof(*tvB), buff, 32);
+    //ft_memcpy(buffChecksum + sizeof(icmp) + sizeof(*tvB), buff, 40);
     //for(int i = 0; i < ECHO_REQUEST_SIZE; ++i)
     //    printf("i: %x\n", buff[i]);
     //resultChecksum = checksum((uint16_t *)buffChecksum, sizeof(icmp) + 32);
@@ -167,7 +167,7 @@ void    icmpResponse(struct msghdr *msg, struct timeval *tvB,
 void    icmpRequest(struct timeval *tvB, struct msghdr *msgResponse) {
     struct timeval tvA;
     int result = -1;
-
+printf("RECV\n");
     result = recvmsg(fdSocket, msgResponse, 0);
     printf("RES: %u\n", result);
     if (result < 0) {
@@ -192,8 +192,8 @@ void    sigHandlerAlrm(int sigNum) {
     struct timeval tvB;
     struct msghdr msgResponse;
     struct iovec msg[1];
-    char buff2[ECHO_REPLY_SIZE];
     char buff[ECHO_REQUEST_SIZE];
+    char buff2[ECHO_REPLY_SIZE];
     int result = -1;
     
     //init part
@@ -213,11 +213,11 @@ void    sigHandlerAlrm(int sigNum) {
     ft_memcpy(buff, &icmp, sizeof(icmp));
     ft_memcpy(buff + sizeof(icmp), &tvB, sizeof(tvB));
     uint8_t j = sizeof(icmp) + sizeof(tvB);
-    const uint8_t max = j + 32;
+    const uint8_t max = j + 40;
     char value = 0;
     for (; j < max; ++j)
         buff[j] = value++;
-    icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp) + sizeof(tvB) + 32);
+    icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp) + sizeof(tvB) + 40);
     ft_memcpy(buff, &icmp, sizeof(icmp));
     //init vars part
     alarm(1);
@@ -229,6 +229,7 @@ void    sigHandlerAlrm(int sigNum) {
     msg[0].iov_len = sizeof(buff2);
     msgResponse.msg_iov = msg;
     msgResponse.msg_iovlen = 1;
+    printf("SEND\n");
     result = sendto(fdSocket, buff,
         ECHO_REQUEST_SIZE, 0,
         listAddr->ai_addr, sizeof(*listAddr->ai_addr));
@@ -285,11 +286,11 @@ void    runIcmp(/*struct addrinfo *client*/) {
     ft_memcpy(buff, &icmp, sizeof(icmp));
     ft_memcpy(buff + sizeof(icmp), &tvB, sizeof(tvB));
     uint8_t j = sizeof(icmp) + sizeof(tvB);
-    const uint8_t max = j + 32;
+    const uint8_t max = j + 40;
     char value = 0;
     for (; j < max; ++j)
         buff[j] = value++;
-    icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp) + sizeof(tvB) + 32);
+    icmp.checksum = checksum((uint16_t *)buff, sizeof(icmp) + sizeof(tvB) + 40);
     ft_memcpy(buff, &icmp, sizeof(icmp));
     //call another ping
     alarm(1);
@@ -306,6 +307,7 @@ void    runIcmp(/*struct addrinfo *client*/) {
     msgResponse.msg_iovlen = 1;
     printf("PING %s (%s): %u data bytes\n", listAddr->ai_canonname,
         inetResult, ECHO_REQUEST_SIZE);
+    printf("SEND\n");
     result = sendto(fdSocket, buff,
         ECHO_REQUEST_SIZE, 0,
         listAddr->ai_addr, sizeof(*listAddr->ai_addr));
