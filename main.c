@@ -2,6 +2,7 @@
 #include "flags.h"
 #include "ft_icmp.h"
 
+struct s_ping_memory    *pingMemory[65536];
 struct  addrinfo *listAddr = 0;
 struct s_flags t_flags;
 int fdSocket;
@@ -47,16 +48,17 @@ static int openSocket(/*struct addrinfo *listAddr*/) {
     return (fd);
 }
 
-static void    searchFlags(char *argv[]/*, struct addrinfo *client*/) {
+static void    searchFlags(char *argv[], struct s_flags *t_flags) {
     for (int i = 1; argv[i] != NULL; ++i) {
         if (argv[i][0] == '-' && argv[i][1] == 'v')
-            t_flags.v = TRUE;
+            t_flags->v = TRUE;
         else if (argv[i][0] == '-' && argv[i][1] == '?')
-            t_flags.interrogation = TRUE;
+            t_flags->interrogation = TRUE;
     }
 }
 
-static struct addrinfo *getIp(struct addrinfo *client, char *argv[], int *i) {
+static struct addrinfo *getIp(struct addrinfo *client,
+    char *argv[], int *i, struct s_flags t_flags) {
     struct addrinfo *list = 0;
     //struct sockaddr_in *translate;
     int result = 0;
@@ -89,7 +91,8 @@ static struct addrinfo *getIp(struct addrinfo *client, char *argv[], int *i) {
     return (list);
 }
 
-static void    pingStart(int argc, char *argv[]) {
+static void    pingStart(int argc, char *argv[],
+    struct s_flags t_flags) {
     struct  addrinfo client;
     int     i = 1;
 
@@ -102,7 +105,7 @@ static void    pingStart(int argc, char *argv[]) {
         client.ai_socktype = SOCK_RAW;
         client.ai_protocol = IPPROTO_ICMP;
         client.ai_flags = AI_CANONNAME;
-        listAddr = getIp(&client, argv, &i);
+        listAddr = getIp(&client, argv, &i, t_flags);
         if (t_flags.interrogation == TRUE) {
             flagInterrogation();
             break ;
@@ -118,6 +121,8 @@ static void    pingStart(int argc, char *argv[]) {
 
 //ping [OPTIONS] host
 int main(int argc, char *argv[]) {
+    struct s_flags t_flags;
+
     t_flags.v = FALSE;
     t_flags.interrogation = FALSE;
     if (getuid() != 0) {
@@ -128,7 +133,7 @@ int main(int argc, char *argv[]) {
         dprintf(2, "%s", "ping: missing host operand\nTry 'ping -?' for more information.\n");
         exit(64);
     }
-    searchFlags(argv);
-    pingStart(argc, argv);
+    searchFlags(argv, &t_flags);
+    pingStart(argc, argv, t_flags);
     return (0);
 }

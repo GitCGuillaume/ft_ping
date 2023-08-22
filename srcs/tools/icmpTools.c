@@ -40,6 +40,19 @@ void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump) 
     *addr = (*addr & ~mask) | ((*(buff + jump) << nb) & mask);
 }
 
+/*  Convert big endian to little endian
+    0 0 1 1 1 1 1 1 >> 8 && << 8 1 0 1 1 0 0 0 1
+    0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1
+    OR
+    1 0 1 1 0 0 0 1 0 0 0 0 0 0 0 0
+    =
+    0 1 0 0 1 0 0 1 0 0 1 0 0 0 0 0
+*/
+
+uint16_t    convertEndianess(uint16_t echoVal) {
+    return (echoVal >> 8 | echoVal << 8);
+}
+
 void    destUnreach(uint8_t code) {
     const char *arr[16] = {
         "Destination Net Unreachable", "Destination Host Unreachable", "Destination Protocol Unreachable",

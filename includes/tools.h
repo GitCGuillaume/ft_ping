@@ -23,11 +23,17 @@ struct s_flags {
     char interrogation;
 };
 
+struct s_ping_memory {
+    struct timeval *tvA;
+    struct timeval *tvB;
+    struct sockaddr_in *translate;
+    struct icmphdr  *icmp;
+};
+
 void    exitInet(void);
 
-extern struct s_flags t_flags;
 extern int fdSocket;
-extern struct s_flags t_flags;
 extern struct  addrinfo *listAddr;
+extern struct s_ping_memory    *pingMemory[65536];
 
 #endif
