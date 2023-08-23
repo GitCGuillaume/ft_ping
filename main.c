@@ -2,7 +2,7 @@
 #include "flags.h"
 #include "ft_icmp.h"
 
-struct s_ping_memory    *pingMemory[65536];
+struct s_ping_memory    pingMemory[65536];
 struct  addrinfo *listAddr = 0;
 struct s_flags t_flags;
 int fdSocket;
@@ -123,6 +123,7 @@ static void    pingStart(int argc, char *argv[],
 int main(int argc, char *argv[]) {
     struct s_flags t_flags;
 
+    ft_memset(pingMemory, 0, sizeof(pingMemory));
     t_flags.v = FALSE;
     t_flags.interrogation = FALSE;
     if (getuid() != 0) {

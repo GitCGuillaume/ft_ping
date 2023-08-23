@@ -12,9 +12,9 @@ void    exitInet(void) {
 /* max 16bits */
 uint16_t    checksum(uint16_t *hdr, size_t len) {
     size_t sum = 0;
-printf("LEN: %lu\n", len);
+
     while (len > 1) {
-        printf("*hdr:%x\n", *hdr);
+        //printf("*hdr:%x\n", *hdr);
         sum += *hdr++;
         len -= sizeof(uint16_t);
     }
@@ -80,7 +80,14 @@ void    sourceQuench(uint8_t code) {
 }
 
 void    redirect(uint8_t code) {
-    
+    if (code == 0)
+        printf("%s\n", "Redirect Network");
+    else if (code == 1)
+        printf("%s\n", "Redirect Host");
+    else if (code == 2)
+        printf("%s\n", "Type of Service and Network");
+    else if (code == 3)
+        printf("%s\n", "Type of Service and Host");
 }
 
 void    timeExceed(uint8_t code) {
@@ -99,7 +106,12 @@ void    timeExceed(uint8_t code) {
 }
 
 void    paramProb(uint8_t code) {
-
+    if (code == 0)
+        printf("%s\n", "Pointer indicate the error");
+    else if (code == 1)
+        printf("%s\n", "Required option is missing");
+    else if (code == 2)
+        printf("%s\n", "Bad length");
 }
 
 void    timeStamp(uint8_t code) {
@@ -156,7 +168,8 @@ void getIcmpCode(struct icmphdr *icmp) {
     };
     void    (*functionCall)(uint8_t) = NULL;
     unsigned int i;
-    printf("ty: %u\n", icmp->code);
+    printf("ty: %u\n", icmp->type);
+    printf("code: %u\n", icmp->code);
     for (i = 0; i < 20; ++i) {
         if (icmp->type == types[i]
             && types[i] != NONE) {

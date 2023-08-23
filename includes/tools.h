@@ -24,16 +24,15 @@ struct s_flags {
 };
 
 struct s_ping_memory {
-    struct timeval *tvA;
-    struct timeval *tvB;
-    struct sockaddr_in *translate;
-    struct icmphdr  *icmp;
+    struct icmphdr  icmp;
+    struct timeval tvB;
 };
 
 void    exitInet(void);
 
 extern int fdSocket;
 extern struct  addrinfo *listAddr;
-extern struct s_ping_memory    *pingMemory[65536];
+/*Store pings for recvMsg*/
+extern struct s_ping_memory    pingMemory[65536];
 
 #endif
