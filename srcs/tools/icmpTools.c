@@ -145,10 +145,18 @@ void    addressReply(uint8_t code) {
     If an ICMP message of unknown type is received, it MUST be
          silently discarded.
 */
-void getIcmpCode(struct icmphdr *icmp) {
+void getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
+    struct sockaddr_in *translate, char *buff, ssize_t recv) {
     //list of icmp macro
     if (!icmp)
         return ;
+    char str[16];
+    char str2[16];
+    ft_memset(str, 0, 16);
+    ft_memset(str2, 0, 16);
+    struct iphdr  *originalIp = (struct iphdr *)buff;
+    printf("zzzz%s %s\n", inet_ntop(AF_INET, &originalIp->saddr, str, INET_ADDRSTRLEN),
+        inet_ntop(AF_INET, &originalIp->daddr, str2, INET_ADDRSTRLEN));
     unsigned int types[19] = {
         NONE, NONE, NONE,
         ICMP_DEST_UNREACH, ICMP_SOURCE_QUENCH,
@@ -168,6 +176,7 @@ void getIcmpCode(struct icmphdr *icmp) {
     };
     void    (*functionCall)(uint8_t) = NULL;
     unsigned int i;
+
     printf("ty: %u\n", icmp->type);
     printf("code: %u\n", icmp->code);
     for (i = 0; i < 20; ++i) {

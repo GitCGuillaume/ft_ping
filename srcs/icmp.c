@@ -63,6 +63,7 @@ void    parseIp(struct iphdr *ip, char *buff) {
     bigBitMask(&ip->daddr, 0xFF00, buff, 8, 1);
     bigBitMask(&ip->daddr, 0xFF0000, buff, 16, 2);
     bigBitMask(&ip->daddr, 0xFF000000, buff, 24, 3);
+    
 }
 
 /* Parse using mask */
@@ -76,20 +77,35 @@ void    parseIcmp(struct icmphdr  *icmp, char *buff) {
     bitMask(&icmp->checksum, 0xFF00, buff, 8, 0);
     bitMask(&icmp->checksum, 0xFF, buff, 0, 1);
     buff += 2;
-    bitMask(&icmp->un.echo.id, 0xFF00, buff, 8, 0);
-    bitMask(&icmp->un.echo.id, 0xFF, buff, 0, 1);
-    buff += 2;
-    bitMask(&icmp->un.echo.sequence, 0xFF00, buff, 8, 0);
-    bitMask(&icmp->un.echo.sequence, 0xFF, buff, 0, 1);
-    buff += 2;
+    if (icmp->type == 0) {
+        bitMask(&icmp->un.echo.id, 0xFF00, buff, 8, 0);
+        bitMask(&icmp->un.echo.id, 0xFF, buff, 0, 1);
+        buff += 2;
+        bitMask(&icmp->un.echo.sequence, 0xFF00, buff, 8, 0);
+        bitMask(&icmp->un.echo.sequence, 0xFF, buff, 0, 1);
+    } else if (icmp->type == 5) {
+        bigBitMask(&icmp->un.gateway, 0xFF, buff, 0, 0);
+        bigBitMask(&icmp->un.gateway, 0xFF00, buff, 8, 1);
+        bigBitMask(&icmp->un.gateway, 0xFF0000, buff, 16, 2);
+        bigBitMask(&icmp->un.gateway, 0xFF000000, buff, 24, 3);
+    }
 }
 
 /* Display response from target using IPv4 and Icmp structure */
 void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
-    struct s_ping_memory *ping, struct timeval *tvA) {
+    struct s_ping_memory *ping, struct timeval *tvA, struct sockaddr_in *translate) {
     if (!ip || !icmp)
         exitInet();
-    printf("aaa: %lu bbb:%lu\n", tvA->tv_usec, ping->tvB.tv_usec);
+    uint8_t idSend = convertEndianess(ping->icmp.un.echo.id);
+    uint8_t seqSend = convertEndianess(ping->icmp.un.echo.sequence);
+    uint8_t idRequest = icmp->un.echo.id;
+    uint8_t seqRequest = icmp->un.echo.sequence;
+    printf("s:%lu\n", sizeof(struct icmp));
+    //Compare host ping Id/Request with client ping
+    if (translate->sin_addr.s_addr != ip->saddr)
+        return ;
+    if (idSend != idRequest || seqSend != seqRequest)
+        return ;
     //char str[16];
     time_t seconds = tvA->tv_sec - ping->tvB.tv_sec;
     suseconds_t microSeconds = tvA->tv_usec - ping->tvB.tv_usec;
@@ -124,8 +140,12 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv) {
     uint16_t resultChecksum;
     struct s_ping_memory *ping = 0;
     char str[16];
+    char str3[16];
+    char str4[16];
 
     ft_memset(str, 0, 16);
+    ft_memset(str3, 0, 16);
+    ft_memset(str4, 0, 16);
     ft_memset(&ip, 0, sizeof(ip));
     ft_memset(&icmp, 0, sizeof(icmp));
     /* Get IPv4 from buffer  */
@@ -134,13 +154,16 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv) {
     /* Get Icmp from buffer */
     resultChecksum = checksum((uint16_t *)buff, sizeof(icmp) + sizeof(struct timeval) + 40);
     parseIcmp(&icmp, buff);
-    if (icmp.type == 8)
-        return ;
-    printf("main addr: %u\n", translate->sin_addr.s_addr);
-    printf("saddr: %u daddr:%u\n", ip.saddr, ip.daddr);
+    //if (icmp.type != 12)
+    buff += 8;
     ping = &pingMemory[icmp.un.echo.sequence];
     if (!ping)
         return ;
+    //printf("qqqqq%s %s\n", inet_ntop(AF_INET, &ip.saddr, str3, INET_ADDRSTRLEN),
+    //    inet_ntop(AF_INET, &ip.daddr, str4, INET_ADDRSTRLEN));
+    printf("id: %u seq: %u\n", icmp.un.echo.id, icmp.un.echo.sequence);
+    printf("Pid: %u Pseq: %u\n", convertEndianess(ping->icmp.un.echo.id),
+        convertEndianess(ping->icmp.un.echo.sequence));
     //printf("ID: %u seq: %u\n", icmp.un.echo.id, icmp.un.echo.sequence);
     //printBits2(icmp.un.echo.id);
     //printf("PID: %u Pseq: %u\n", convertEndianess(ping->icmp.un.echo.id),
@@ -157,18 +180,30 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv) {
     //printf("icmp.type: %u", icmp.type);
     if (resultChecksum != 0) {
         printf("resultChecksum: %hu\ncode: icmp.code: %hu type: %hu\n", resultChecksum, icmp.code, icmp.type);
-        printf("id: %u seq: %u\n", icmp.un.echo.id, icmp.un.echo.sequence);
-        getIcmpCode(&icmp);
+        getIcmpCode(&ip, &icmp, translate, buff, recv);
     } else {
-        if (icmp.type == 0 && icmp.code == 0)
-            displayResponse(&ip, &icmp, ping, &tvA);
+        if (icmp.type == 0 && icmp.code == 0) {
+            //-8 mean remove icmp header size
+            uint16_t checksumOriginal = checksum((uint16_t *)&ping->tvB, sizeof(struct timeval));
+            uint16_t checksumTimevalBuffer = checksum((uint16_t *)buff, sizeof(struct timeval));
+
+            buff += 16;
+            recv -= sizeof(struct timeval) + sizeof(struct icmphdr);
+            if (checksumOriginal != checksumTimevalBuffer)
+                return ;
+            for (int i = 0; i < recv; i++) {
+                if (buff[i] != i)
+                    return ;
+            }
+            displayResponse(&ip, &icmp, ping, &tvA, translate);
+        }
         else
-            getIcmpCode(&icmp);
+            getIcmpCode(&ip, &icmp, translate, buff, recv);
     }
     ft_memset(&pingMemory[icmp.un.echo.sequence], 0, sizeof(struct s_ping_memory));
 }
 
-/* Ger request response */
+/* Get request response */
 void    icmpRequest() {
     char buff2[ECHO_REPLY_SIZE];
     struct msghdr msgResponse;
@@ -182,7 +217,7 @@ void    icmpRequest() {
     msgResponse.msg_iov = msg;
     msgResponse.msg_iovlen = 1;
     result = recvmsg(fdSocket, &msgResponse, 0);
-    printf("result: %u\n", result);
+    //printf("result: %u\n", result);
     if (result < 0) {
         freeaddrinfo(listAddr);
         dprintf(2, "%s\n", gai_strerror(result));
@@ -190,7 +225,9 @@ void    icmpRequest() {
             close(fdSocket);
         exit(1);
     }
-    icmpResponse(&msgResponse, result);
+    //result - sizeof(struct iphdr) = whole response minus ip header (84-20)=64 
+    //echo reply is 64 like a standard reply from the ping inetutils2.0
+    icmpResponse(&msgResponse, result - sizeof(struct iphdr));
 }
 
 /* send ping using signal alarm */
@@ -273,7 +310,6 @@ void    runIcmp() {
     if (gettimeofday(&pingMemory[0].tvB, 0) < 0) {
         exitInet();
     }
-    printf("aaa: %lu\n", pingMemory[0].tvB.tv_usec);
     ft_memcpy(buff, &pingMemory[0].icmp, sizeof(pingMemory[0].icmp));
     ft_memcpy(buff + sizeof(pingMemory[0].icmp), &pingMemory[0].tvB, sizeof(pingMemory[0].tvB));
     uint8_t j = sizeof(pingMemory[0].icmp) + sizeof(pingMemory[0].tvB);

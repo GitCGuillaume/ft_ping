@@ -17,6 +17,7 @@ void    bitMask(uint16_t *addr, uint16_t mask, char *buff, int nb, int jump);
 void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump);
 uint16_t    convertEndianess(uint16_t echoVal);
 void    runIcmp(/*struct addrinfo *client*/);
-const char *getIcmpCode(struct icmphdr *icmp);
+void getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
+    struct sockaddr_in *translate, char *buff, ssize_t recv);
 
 #endif
