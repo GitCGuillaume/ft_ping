@@ -19,5 +19,7 @@ uint16_t    convertEndianess(uint16_t echoVal);
 void    runIcmp(/*struct addrinfo *client*/);
 void getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
     struct sockaddr_in *translate, char *buff, ssize_t recv);
+void    parseIp(struct iphdr *ip, char *buff);
+void    parseIcmp(struct icmphdr  *icmp, char *buff);
 
 #endif

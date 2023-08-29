@@ -48,8 +48,8 @@ def test(packet):
         
         ###ICMP###
         icmp = ICMP()
-        icmp.type=14
-        icmp.code=0
+        icmp.type=5
+        icmp.code=1
         #icmp.id = pkt[ICMP].id
         #icmp.seq = pkt[ICMP].seq
         #icmp.gw = "192.168.57.0"

@@ -17,6 +17,7 @@
 #define TRUE 1
 #define FALSE 0
 #define NONE 20
+#define ICMP 1
 
 struct s_flags {
     char v;
