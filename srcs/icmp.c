@@ -2,7 +2,7 @@
 #include "tools.h"
 
 int i = 0;
-
+/*
 void printBits(unsigned int num)
 {
    for(unsigned int bit=0;bit< sizeof(unsigned int*); bit++)
@@ -21,6 +21,7 @@ void printBits2(uint16_t num)
    }
    printf("\n");
 }
+*/
 
 /* Display response from target using IPv4 and Icmp structure */
 void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
@@ -31,7 +32,7 @@ void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
     uint8_t seqSend = convertEndianess(ping->icmp.un.echo.sequence);
     uint8_t idRequest = icmp->un.echo.id;
     uint8_t seqRequest = icmp->un.echo.sequence;
-    printf("s:%lu\n", sizeof(struct icmp));
+    //printf("s:%lu\n", sizeof(struct icmp));
     //Compare host ping Id/Request with client ping
     if (translate->sin_addr.s_addr != ip->saddr)
         return ;
@@ -47,7 +48,7 @@ void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
     //const char *ntop = inet_ntop(AF_INET, &ip->saddr, str, INET_ADDRSTRLEN);
     //if (!ntop)
     //    exitInet();
-    printf("icmp_seq=%u ttl=%u time=%f ms\n",
+    printf("icmp_seq=%u ttl=%u time=%.3g ms\n",
         icmpSequence, ip->ttl, milliSeconds);
 }
 
@@ -59,10 +60,10 @@ void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
         including the checksum;
         if the result is not a word full of zeros, an error must have occurred
 */
-void    icmpResponse(struct msghdr *msg, ssize_t recv) {
+void    icmpResponse(struct msghdr *msg, ssize_t recv,
+    struct timeval *tvA) {
     if (!msg)
         exitInet();
-    struct timeval tvA;
     struct iovec *iov = msg->msg_iov;
     struct iphdr    ip;
     struct icmphdr  icmp;
@@ -91,9 +92,9 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv) {
         return ;
     //printf("qqqqq%s %s\n", inet_ntop(AF_INET, &ip.saddr, str3, INET_ADDRSTRLEN),
     //    inet_ntop(AF_INET, &ip.daddr, str4, INET_ADDRSTRLEN));
-    printf("id: %u seq: %u\n", icmp.un.echo.id, icmp.un.echo.sequence);
-    printf("Pid: %u Pseq: %u\n", convertEndianess(ping->icmp.un.echo.id),
-        convertEndianess(ping->icmp.un.echo.sequence));
+    //printf("id: %u seq: %u\n", icmp.un.echo.id, icmp.un.echo.sequence);
+    //printf("Pid: %u Pseq: %u\n", convertEndianess(ping->icmp.un.echo.id),
+    //    convertEndianess(ping->icmp.un.echo.sequence));
     //printf("ID: %u seq: %u\n", icmp.un.echo.id, icmp.un.echo.sequence);
     //printBits2(icmp.un.echo.id);
     //printf("PID: %u Pseq: %u\n", convertEndianess(ping->icmp.un.echo.id),
@@ -105,8 +106,6 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv) {
     printf("%lu bytes from %s: ",
         recv, ntop);
     //printf("resultC: %x chk: %x\n", resultChecksum, icmp.checksum);
-    if (gettimeofday(&tvA, 0) < 0)
-        exitInet();
     //printf("icmp.type: %u", icmp.type);
     if (resultChecksum != 0) {
         printf("resultChecksum: %hu\ncode: icmp.code: %hu type: %hu\n", resultChecksum, icmp.code, icmp.type);
@@ -126,7 +125,7 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv) {
                 if (buff[i] != i)
                     return ;
             }
-            displayResponse(&ip, &icmp, ping, &tvA, translate);
+            displayResponse(&ip, &icmp, ping, tvA, translate);
         }
         else
             getIcmpCode(&ip, &icmp, translate, buff, recv);
@@ -139,6 +138,7 @@ void    icmpRequest() {
     char buff2[ECHO_REPLY_SIZE];
     struct msghdr msgResponse;
     struct iovec msg[1];
+    struct timeval tvA;
     int result = -1;
 
     ft_memset(&msgResponse, 0, sizeof(struct msghdr));
@@ -156,9 +156,11 @@ void    icmpRequest() {
             close(fdSocket);
         exit(1);
     }
+    if (gettimeofday(&tvA, 0) < 0)
+        exitInet();
     //result - sizeof(struct iphdr) = whole response minus ip header (84-20)=64 
     //echo reply is 64 like a standard reply from the ping inetutils2.0
-    icmpResponse(&msgResponse, result - sizeof(struct iphdr));
+    icmpResponse(&msgResponse, result - sizeof(struct iphdr), &tvA);
 }
 
 /* send ping using signal alarm */
@@ -238,6 +240,19 @@ void    runIcmp() {
     ++i;
     pingMemory[0].icmp.checksum = 0;
     //get time before substract
+    const char *inetResult = inet_ntop(AF_INET, &translate->sin_addr, str, INET_ADDRSTRLEN);
+    if (!inetResult) {
+        exitInet();
+    }
+    printf("PING %s (%s): %lu data bytes", listAddr->ai_canonname,
+        inetResult, ECHO_REQUEST_SIZE - sizeof(struct icmphdr));
+    //jump line or display -v id option part
+    if (t_flags.v == FALSE)
+        printf("%s", "\n");
+    else
+        printf(", id 0x%04x = %u\n",
+            convertEndianess(pingMemory[0].icmp.un.echo.id),
+            convertEndianess(pingMemory[0].icmp.un.echo.id));
     if (gettimeofday(&pingMemory[0].tvB, 0) < 0) {
         exitInet();
     }
@@ -252,12 +267,6 @@ void    runIcmp() {
         = checksum((uint16_t *)buff, sizeof(pingMemory[0].icmp) + sizeof(pingMemory[0].tvB) + 40);
     ft_memcpy(buff, &pingMemory[0].icmp, sizeof(pingMemory[0].icmp));
     //call another ping
-    const char *inetResult = inet_ntop(AF_INET, &translate->sin_addr, str, INET_ADDRSTRLEN);
-    if (!inetResult) {
-        exitInet();
-    }
-    printf("PING %s (%s): %u data bytes\n", listAddr->ai_canonname,
-        inetResult, ECHO_REQUEST_SIZE);
     result = sendto(fdSocket, buff,
         ECHO_REQUEST_SIZE, 0,
         listAddr->ai_addr, sizeof(*listAddr->ai_addr));

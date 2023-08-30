@@ -33,7 +33,9 @@ void    exitInet(void);
 
 extern int fdSocket;
 extern struct  addrinfo *listAddr;
+extern struct s_flags t_flags;
 /*Store pings for recvMsg*/
 extern struct s_ping_memory    pingMemory[65536];
-
+/*[0]=min [1]=max*/
+extern float  rtt[2];
 #endif
