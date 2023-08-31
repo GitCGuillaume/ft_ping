@@ -138,23 +138,23 @@ void    destUnreach(uint8_t code) {
             break ;
     }
     if (i != 16)
-        printf("%s\n", arr[i]);
+        printf("%s", arr[i]);
 }
 
 /* Deprecated */
 void    sourceQuench(uint8_t code) {
-    printf("%s\n", "Source Quench");
+    printf("%s", "Source Quench");
 }
 
 void    redirect(uint8_t code) {
     if (code == 0)
-        printf("%s\n", "Redirect Network");
+        printf("%s", "Redirect Network");
     else if (code == 1)
-        printf("%s\n", "Redirect Host");
+        printf("%s", "Redirect Host");
     else if (code == 2)
-        printf("%s\n", "Type of Service and Network");
+        printf("%s", "Type of Service and Network");
     else if (code == 3)
-        printf("%s\n", "Type of Service and Host");
+        printf("%s", "Type of Service and Host");
 }
 
 void    timeExceed(uint8_t code) {
@@ -169,16 +169,16 @@ void    timeExceed(uint8_t code) {
             break ;
     }
     if (i != 2)
-        printf("%s\n", arr[i]);
+        printf("%s", arr[i]);
 }
 
 void    paramProb(uint8_t code) {
     if (code == 0)
-        printf("%s\n", "Pointer indicate the error");
+        printf("%s", "Pointer indicate the error");
     else if (code == 1)
-        printf("%s\n", "Required option is missing");
+        printf("%s", "Required option is missing");
     else if (code == 2)
-        printf("%s\n", "Bad length");
+        printf("%s", "Bad length");
 }
 
 void    timeStamp(uint8_t code) {
@@ -222,7 +222,7 @@ unsigned char isReplyOk(struct iphdr *ip,
     recv -= sizeof(struct iphdr);
     if (recv < 8)
         return (FALSE);
-    printf("recv: %ld\n", recv);
+    //printf("recv: %ld\n", recv);
     parseIp(&ipOriginal, buff);
     buff += sizeof(struct iphdr);
     if (ipOriginal.protocol != ICMP)
@@ -237,7 +237,6 @@ unsigned char isReplyOk(struct iphdr *ip,
     ping = &pingMemory[icmpOriginal.un.echo.sequence];
     if (!ping)
         return (FALSE);
-    
     icmp = &ping->icmp;
     /*printf("type: %u %u\ncode: %u %u\nchk: %u %u\nid: %u %u\nseq: %u %u",
         icmp->type, icmpOriginal.type,
@@ -269,8 +268,9 @@ void getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
 
     if (icmp->type != 12)
         buff += sizeof(struct icmphdr);
-    if (isReplyOk(ip, translate, buff, recv) == FALSE)
+    if (isReplyOk(ip, translate, buff, recv) == FALSE){
         return ;
+    }
     ft_memset(str, 0, 16);
     ft_memset(str2, 0, 16);
     //struct iphdr  *originalIp = (struct iphdr *)buff;
@@ -296,8 +296,8 @@ void getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
     void    (*functionCall)(uint8_t) = NULL;
     unsigned int i;
 
-    printf("ty: %u\n", icmp->type);
-    printf("code: %u\n", icmp->code);
+   // printf("ty: %u\n", icmp->type);
+   // printf("code: %u\n", icmp->code);
     for (i = 0; i < 20; ++i) {
         if (icmp->type == types[i]
             && types[i] != NONE) {

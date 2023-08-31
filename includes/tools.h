@@ -24,9 +24,14 @@ struct s_flags {
     char interrogation;
 };
 
+/*
+    dup == when packet is read for the first time, set it to TRUE
+    if dup is already on TRUE, then it's a duplicate packet
+*/
 struct s_ping_memory {
     struct icmphdr  icmp;
     struct timeval tvB;
+    char    dup;
 };
 
 void    exitInet(void);
@@ -37,5 +42,5 @@ extern struct s_flags t_flags;
 /*Store pings for recvMsg*/
 extern struct s_ping_memory    pingMemory[65536];
 /*[0]=min [1]=max*/
-extern float  rtt[2];
+extern double  rtt[2];
 #endif

@@ -11,7 +11,7 @@ void printBits(unsigned int num)
       num = num >> 1;
    }
    printf("\n");
-}
+}*/
 void printBits2(uint16_t num)
 {
    for(uint16_t bit=0;bit< 16; bit++)
@@ -21,7 +21,6 @@ void printBits2(uint16_t num)
    }
    printf("\n");
 }
-*/
 
 /* Display response from target using IPv4 and Icmp structure */
 void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
@@ -32,24 +31,26 @@ void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
     uint8_t seqSend = convertEndianess(ping->icmp.un.echo.sequence);
     uint8_t idRequest = icmp->un.echo.id;
     uint8_t seqRequest = icmp->un.echo.sequence;
-    //printf("s:%lu\n", sizeof(struct icmp));
+
     //Compare host ping Id/Request with client ping
     if (translate->sin_addr.s_addr != ip->saddr)
         return ;
     if (idSend != idRequest || seqSend != seqRequest)
         return ;
-    //char str[16];
     time_t seconds = tvA->tv_sec - ping->tvB.tv_sec;
     suseconds_t microSeconds = tvA->tv_usec - ping->tvB.tv_usec;
-    float milliSeconds = (seconds*1000.0000) + (microSeconds / 1000.0000);
+    double milliSeconds = (seconds*1000.000000) + (microSeconds / 1000.000000);
     uint16_t icmpSequence = icmp->un.echo.sequence;// & 0x00FF;
-    
-    //ft_memset(str, 0, 16);
-    //const char *ntop = inet_ntop(AF_INET, &ip->saddr, str, INET_ADDRSTRLEN);
-    //if (!ntop)
-    //    exitInet();
-    printf("icmp_seq=%u ttl=%u time=%.3g ms\n",
+
+    if (milliSeconds < rtt[0] || rtt[0] == 0)
+        rtt[0] = milliSeconds;
+    if (rtt[1] < milliSeconds)
+        rtt[1] = milliSeconds;
+    printf("icmp_seq=%u ttl=%u time=%.3f ms",
         icmpSequence, ip->ttl, milliSeconds);
+    if (ping->dup == TRUE)
+        printf("%s", " (DUP!)");
+    ping->dup = TRUE;
 }
 
 /*
@@ -86,10 +87,15 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
     /* Get Icmp from buffer */
     resultChecksum = checksum((uint16_t *)buff, sizeof(icmp) + sizeof(struct timeval) + 40);
     parseIcmp(&icmp, buff);
-    //if (icmp.type != 12)
-    ping = &pingMemory[icmp.un.echo.sequence];
-    if (!ping)
+    if (icmp.type == 8)
         return ;
+    if (icmp.type == 0 && icmp.code == 0) {
+        ping = &pingMemory[icmp.un.echo.sequence];
+        if (!ping)
+            return ;
+     //   printBits2((uint16_t)ping->tvB.tv_sec);
+       // printBits2((uint16_t)ping->tvB.tv_usec);
+    }
     //printf("qqqqq%s %s\n", inet_ntop(AF_INET, &ip.saddr, str3, INET_ADDRSTRLEN),
     //    inet_ntop(AF_INET, &ip.daddr, str4, INET_ADDRSTRLEN));
     //printf("id: %u seq: %u\n", icmp.un.echo.id, icmp.un.echo.sequence);
@@ -103,15 +109,15 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
     const char *ntop = inet_ntop(AF_INET, &ip.saddr, str, INET_ADDRSTRLEN);
     if (!ntop)
         exitInet();
-    printf("%lu bytes from %s: ",
-        recv, ntop);
+    printf("%lu bytes from %s: ", recv, ntop);
     //printf("resultC: %x chk: %x\n", resultChecksum, icmp.checksum);
-    //printf("icmp.type: %u", icmp.type);
     if (resultChecksum != 0) {
         printf("resultChecksum: %hu\ncode: icmp.code: %hu type: %hu\n", resultChecksum, icmp.code, icmp.type);
         getIcmpCode(&ip, &icmp, translate, buff, recv);
     } else {
-        if (icmp.type == 0 && icmp.code == 0) {
+        if (icmp.type == 0) {
+            if (!ping)
+                return ;
             buff += sizeof(struct icmphdr);
             //-8 mean remove icmp header size
             uint16_t checksumOriginal = checksum((uint16_t *)&ping->tvB, sizeof(struct timeval));
@@ -129,8 +135,9 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
         }
         else
             getIcmpCode(&ip, &icmp, translate, buff, recv);
+        printf("\n");
     }
-   // ft_memset(&pingMemory[icmp.un.echo.sequence], 0, sizeof(struct s_ping_memory));
+    //ft_memset(&pingMemory[icmp.un.echo.sequence], 0, sizeof(struct s_ping_memory));
 }
 
 /* Get request response */
@@ -248,7 +255,7 @@ void    runIcmp() {
         inetResult, ECHO_REQUEST_SIZE - sizeof(struct icmphdr));
     //jump line or display -v id option part
     if (t_flags.v == FALSE)
-        printf("%s", "\n");
+        printf("\n");
     else
         printf(", id 0x%04x = %u\n",
             convertEndianess(pingMemory[0].icmp.un.echo.id),

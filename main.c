@@ -5,14 +5,20 @@
 struct s_ping_memory    pingMemory[65536];
 struct  addrinfo *listAddr = 0;
 struct s_flags t_flags;
-float  rtt[2];
+double  rtt[2];
 int fdSocket;
+
+static double   ftSqrtd(double num) {
+    return (0.0f);
+}
 
 static void    sigHandlerInt(int sigNum) {
     if (sigNum != SIGINT)
         return ;
     if  (listAddr)
         freeaddrinfo(listAddr);
+    printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f\n",
+        rtt[0], (rtt[0] + rtt[1]) / 2, rtt[1], 0.0f);
     exit(0);
 }
 
@@ -128,8 +134,8 @@ int main(int argc, char *argv[]) {
     t_flags.v = FALSE;
     t_flags.interrogation = FALSE;
     //init round trip time
-    rtt[0] = 0.0f;
-    rtt[1] = 0.0f;
+    rtt[0] = 0.0d;
+    rtt[1] = 0.0d;
     if (getuid() != 0) {
         dprintf(2, "%s", "Please use root privileges.\n");
         return (EXIT_FAILURE);
