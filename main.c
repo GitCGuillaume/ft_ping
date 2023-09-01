@@ -8,8 +8,19 @@ struct s_flags t_flags;
 double  rtt[2];
 int fdSocket;
 
-static double   ftSqrtd(double num) {
-    return (0.0f);
+/*
+    Heron's method
+    https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Heron's_method
+*/
+double   ftSqrt(double num) {
+    double x = num;
+    double old = 0;
+
+    while (x != old){
+        old = x;
+        x = (x + num / x) / 2;
+    }
+    return (x);
 }
 
 static void    sigHandlerInt(int sigNum) {
@@ -18,7 +29,7 @@ static void    sigHandlerInt(int sigNum) {
     if  (listAddr)
         freeaddrinfo(listAddr);
     printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f\n",
-        rtt[0], (rtt[0] + rtt[1]) / 2, rtt[1], 0.0f);
+        rtt[0], (rtt[0] + rtt[1]) / 2, rtt[1], 0.0d);
     exit(0);
 }
 
@@ -128,8 +139,6 @@ static void    pingStart(int argc, char *argv[],
 
 //ping [OPTIONS] host
 int main(int argc, char *argv[]) {
-    //struct s_flags t_flags;
-
     ft_memset(pingMemory, 0, sizeof(pingMemory));
     t_flags.v = FALSE;
     t_flags.interrogation = FALSE;
