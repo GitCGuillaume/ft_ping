@@ -5,7 +5,7 @@
 struct s_ping_memory    pingMemory[65536];
 struct  addrinfo *listAddr = 0;
 struct s_flags t_flags;
-double  rtt[2];
+struct s_round_trip  roundTripGlobal;
 int fdSocket;
 
 /*
@@ -16,6 +16,8 @@ double   ftSqrt(double num) {
     double x = num;
     double old = 0;
 
+    if (num < 0 || num == 0)
+        return (0.0d);
     while (x != old){
         old = x;
         x = (x + num / x) / 2;
@@ -24,12 +26,18 @@ double   ftSqrt(double num) {
 }
 
 static void    sigHandlerInt(int sigNum) {
+    double average;
+
     if (sigNum != SIGINT)
         return ;
     if  (listAddr)
         freeaddrinfo(listAddr);
+    average = roundTripGlobal.sum / roundTripGlobal.number;
     printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f\n",
-        rtt[0], (rtt[0] + rtt[1]) / 2, rtt[1], 0.0d);
+        roundTripGlobal.rtt[0],
+        average,
+        roundTripGlobal.rtt[1],
+        0.0d);
     exit(0);
 }
 
@@ -140,11 +148,10 @@ static void    pingStart(int argc, char *argv[],
 //ping [OPTIONS] host
 int main(int argc, char *argv[]) {
     ft_memset(pingMemory, 0, sizeof(pingMemory));
+    ft_memset(&roundTripGlobal, 0, sizeof(struct s_round_trip));
     t_flags.v = FALSE;
     t_flags.interrogation = FALSE;
     //init round trip time
-    rtt[0] = 0.0d;
-    rtt[1] = 0.0d;
     if (getuid() != 0) {
         dprintf(2, "%s", "Please use root privileges.\n");
         return (EXIT_FAILURE);

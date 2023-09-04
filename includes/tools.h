@@ -33,6 +33,13 @@ struct s_ping_memory {
     struct timeval tvB;
     char    dup;
 };
+/*[0]=min [1]=max*/
+struct s_round_trip {
+    double  rtt[2];
+    double  sum;
+    double  stdDevSum;
+    size_t  number;
+};
 
 void    exitInet(void);
 
@@ -41,6 +48,5 @@ extern struct  addrinfo *listAddr;
 extern struct s_flags t_flags;
 /*Store pings for recvMsg*/
 extern struct s_ping_memory    pingMemory[65536];
-/*[0]=min [1]=max*/
-extern double  rtt[2];
+extern struct s_round_trip  roundTripGlobal;
 #endif

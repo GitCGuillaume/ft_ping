@@ -31,7 +31,6 @@ void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
     uint8_t seqSend = convertEndianess(ping->icmp.un.echo.sequence);
     uint8_t idRequest = icmp->un.echo.id;
     uint8_t seqRequest = icmp->un.echo.sequence;
-
     //Compare host ping Id/Request with client ping
     if (translate->sin_addr.s_addr != ip->saddr)
         return ;
@@ -42,10 +41,12 @@ void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
     double milliSeconds = (seconds*1000.000000) + (microSeconds / 1000.000000);
     uint16_t icmpSequence = icmp->un.echo.sequence;// & 0x00FF;
 
-    if (milliSeconds < rtt[0] || rtt[0] == 0)
-        rtt[0] = milliSeconds;
-    if (rtt[1] < milliSeconds)
-        rtt[1] = milliSeconds;
+    roundTripGlobal.sum += milliSeconds;
+    ++roundTripGlobal.number;
+    if (milliSeconds < roundTripGlobal.rtt[0] || roundTripGlobal.rtt[0] == 0)
+        roundTripGlobal.rtt[0] = milliSeconds;
+    if (roundTripGlobal.rtt[1] < milliSeconds)
+        roundTripGlobal.rtt[1] = milliSeconds;
     printf("icmp_seq=%u ttl=%u time=%.3f ms",
         icmpSequence, ip->ttl, milliSeconds);
     if (ping->dup == TRUE)
