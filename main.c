@@ -25,19 +25,27 @@ double   ftSqrt(double num) {
     return (x);
 }
 
+/*
+    https://en.wikipedia.org/wiki/Standard_deviation
+    https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+*/
 static void    sigHandlerInt(int sigNum) {
-    double average;
+    double  average;
+    double  stdDev = 0.0d;
 
     if (sigNum != SIGINT)
         return ;
     if  (listAddr)
         freeaddrinfo(listAddr);
+    if (roundTripGlobal.number == 0)
+        exit(0);
     average = roundTripGlobal.sum / roundTripGlobal.number;
+    stdDev = ftSqrt((roundTripGlobal.squareSum / roundTripGlobal.number) - (average * average));
     printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f\n",
         roundTripGlobal.rtt[0],
         average,
         roundTripGlobal.rtt[1],
-        0.0d);
+        stdDev);
     exit(0);
 }
 

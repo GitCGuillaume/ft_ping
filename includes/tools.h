@@ -37,7 +37,7 @@ struct s_ping_memory {
 struct s_round_trip {
     double  rtt[2];
     double  sum;
-    double  stdDevSum;
+    double  squareSum;
     size_t  number;
 };
 

@@ -42,6 +42,7 @@ void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
     uint16_t icmpSequence = icmp->un.echo.sequence;// & 0x00FF;
 
     roundTripGlobal.sum += milliSeconds;
+    roundTripGlobal.squareSum += (milliSeconds * milliSeconds);
     ++roundTripGlobal.number;
     if (milliSeconds < roundTripGlobal.rtt[0] || roundTripGlobal.rtt[0] == 0)
         roundTripGlobal.rtt[0] = milliSeconds;
