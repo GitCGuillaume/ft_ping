@@ -50,8 +50,12 @@ void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
         roundTripGlobal.rtt[1] = milliSeconds;
     printf("icmp_seq=%u ttl=%u time=%.3f ms",
         icmpSequence, ip->ttl, milliSeconds);
-    if (ping->dup == TRUE)
+    if (ping->dup == TRUE) {
         printf("%s", " (DUP!)");
+        roundTripGlobal.packetDuplicate += 1;
+    } else {
+        roundTripGlobal.packetReceive += 1;
+    }
     ping->dup = TRUE;
 }
 
@@ -188,9 +192,9 @@ void    sigHandlerAlrm(int sigNum) {
     ft_memset(buff, 0, ECHO_REQUEST_SIZE);
     pingMemory[cpyI].icmp.type = ICMP_ECHO;
     pingMemory[cpyI].icmp.code = 0;
-    pingMemory[cpyI].icmp.un.echo.id = getpid();
+    pingMemory[cpyI].icmp.un.echo.id = htons(getpid());
     pingMemory[cpyI].icmp.un.echo.sequence = htons(i);
-    ++i;
+   // printf("del: %u %u\n", pingMemory[cpyI].icmp.un.echo.id, pingMemory[cpyI].icmp.un.echo.sequence);
     pingMemory[cpyI].icmp.checksum = 0;
     if (gettimeofday(&pingMemory[cpyI].tvB, 0) < 0) {
         exitInet();
@@ -205,6 +209,7 @@ void    sigHandlerAlrm(int sigNum) {
     pingMemory[cpyI].icmp.checksum
         = checksum((uint16_t *)buff, sizeof(pingMemory[cpyI].icmp) + sizeof(pingMemory[cpyI].tvB) + 40);
     ft_memcpy(buff, &pingMemory[cpyI].icmp, sizeof(pingMemory[cpyI].icmp));
+    ++i;
     result = sendto(fdSocket, buff,
         ECHO_REQUEST_SIZE, 0,
         listAddr->ai_addr, sizeof(*listAddr->ai_addr));
@@ -215,6 +220,7 @@ void    sigHandlerAlrm(int sigNum) {
             close(fdSocket);
         exit(1);
     }
+    //Call another ping
     alarm(1);
 }
 
@@ -244,9 +250,10 @@ void    runIcmp() {
     ft_memset(buff, 0, ECHO_REQUEST_SIZE);
     pingMemory[0].icmp.type = ICMP_ECHO;
     pingMemory[0].icmp.code = 0;
-    pingMemory[0].icmp.un.echo.id = getpid();
+  //  printf("s: %lu\n", sizeof(get));
+    pingMemory[0].icmp.un.echo.id = htons(getpid());
     pingMemory[0].icmp.un.echo.sequence = htons(i);
-    ++i;
+   // printf("del: %u %u\n", pingMemory[0].icmp.un.echo.id, pingMemory[0].icmp.un.echo.sequence);
     pingMemory[0].icmp.checksum = 0;
     //get time before substract
     const char *inetResult = inet_ntop(AF_INET, &translate->sin_addr, str, INET_ADDRSTRLEN);
@@ -275,7 +282,7 @@ void    runIcmp() {
     pingMemory[0].icmp.checksum
         = checksum((uint16_t *)buff, sizeof(pingMemory[0].icmp) + sizeof(pingMemory[0].tvB) + 40);
     ft_memcpy(buff, &pingMemory[0].icmp, sizeof(pingMemory[0].icmp));
-    //call another ping
+    ++i;
     result = sendto(fdSocket, buff,
         ECHO_REQUEST_SIZE, 0,
         listAddr->ai_addr, sizeof(*listAddr->ai_addr));
@@ -286,6 +293,7 @@ void    runIcmp() {
             close(fdSocket);
         exit(1);
     }
+    //Call another ping
     alarm(1);
     while (1) {
         icmpRequest();

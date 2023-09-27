@@ -39,6 +39,8 @@ struct s_round_trip {
     double  sum;
     double  squareSum;
     size_t  number;
+    uint32_t    packetReceive;
+    uint32_t    packetDuplicate;
 };
 
 void    exitInet(void);

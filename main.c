@@ -41,6 +41,11 @@ static void    sigHandlerInt(int sigNum) {
         exit(0);
     average = roundTripGlobal.sum / roundTripGlobal.number;
     stdDev = ftSqrt((roundTripGlobal.squareSum / roundTripGlobal.number) - (average * average));
+    printf("--- 192.168.56.1 ping statistics ---\n");
+    printf("%u packets transmitted, %u packets received", 0, roundTripGlobal.packetReceive);
+    if (roundTripGlobal.packetDuplicate != 0)
+        printf(", +%u duplicates", 0);
+    printf(", 0%% packet loss\n");
     printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f\n",
         roundTripGlobal.rtt[0],
         average,
