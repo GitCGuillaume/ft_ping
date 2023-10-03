@@ -3,10 +3,10 @@
 #include "ft_icmp.h"
 
 struct s_ping_memory    pingMemory[65536];
-struct  addrinfo *listAddr = 0;
-struct s_flags t_flags;
-struct s_round_trip  roundTripGlobal;
-int fdSocket;
+struct  addrinfo *listAddr = 0;//need to be cleaned in CTRL+C + alarm(function is sigHandlerAlrm)
+struct s_round_trip  roundTripGlobal;//mainly for signal function...
+int fdSocket;//must be also closed on CTRL+C etc
+char*   destinationName;//used for CTRL +C signal function...
 
 /*
     Heron's method
@@ -35,23 +35,38 @@ static void    sigHandlerInt(int sigNum) {
 
     if (sigNum != SIGINT)
         return ;
+    if (fdSocket >= 0)
+        close(fdSocket);
     if  (listAddr)
         freeaddrinfo(listAddr);
-    if (roundTripGlobal.number == 0)
-        exit(0);
-    average = roundTripGlobal.sum / roundTripGlobal.number;
-    stdDev = ftSqrt((roundTripGlobal.squareSum / roundTripGlobal.number) - (average * average));
-    printf("--- 192.168.56.1 ping statistics ---\n");
-    printf("%u packets transmitted, %u packets received", 0, roundTripGlobal.packetReceive);
+    if (roundTripGlobal.number != 0) {
+        average = roundTripGlobal.sum / roundTripGlobal.number;
+        stdDev = ftSqrt((roundTripGlobal.squareSum / roundTripGlobal.number) - (average * average));
+    }
+    printf("--- %s ping statistics ---\n", destinationName);
+    printf("%u packets transmitted, %u packets received",
+        roundTripGlobal.packetSend,
+        roundTripGlobal.packetReceive);
     if (roundTripGlobal.packetDuplicate != 0)
         printf(", +%u duplicates", 0);
-    printf(", 0%% packet loss\n");
-    printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f\n",
+    if (roundTripGlobal.packetReceive > roundTripGlobal.packetSend)
+        printf(", -- somebody is printing forged packets!\n");
+    else if (roundTripGlobal.packetSend != 0) {
+        //inetutils's ping command seem to not display packet loss
+        double loseRatePct = (((double)roundTripGlobal.packetSend - (
+            double)roundTripGlobal.packetReceive) / (double)roundTripGlobal.packetSend)
+            * 100.000000;
+        printf(", %.0f%% packet loss\n", loseRatePct);
+    }
+    if (roundTripGlobal.number != 0) {
+        printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f\n",
         roundTripGlobal.rtt[0],
         average,
         roundTripGlobal.rtt[1],
         stdDev);
-    exit(0);
+        exit(0);
+    }
+    exit(1);
 }
 
 /* code /usr/include/x86_64-linux-gnu/bits/in.h
@@ -97,7 +112,7 @@ static void    searchFlags(char *argv[], struct s_flags *t_flags) {
 }
 
 static struct addrinfo *getIp(struct addrinfo *client,
-    char *argv[], int *i, struct s_flags t_flags) {
+    char *argv[], int *i, struct s_flags *t_flags) {
     struct addrinfo *list = 0;
     //struct sockaddr_in *translate;
     int result = 0;
@@ -109,6 +124,7 @@ static struct addrinfo *getIp(struct addrinfo *client,
                 dprintf(2, "%s\n", gai_strerror(result));
                 exit(result);
             }
+            destinationName = argv[*i];
             break ;
         }
     }
@@ -120,7 +136,7 @@ static struct addrinfo *getIp(struct addrinfo *client,
             inet_ntop(AF_INET, &translate->sin_addr, str, INET_ADDRSTRLEN));
         ft_memset(str, 0, 1001);
     }*/
-    if (t_flags.interrogation == FALSE && !list) {
+    if (t_flags->interrogation == FALSE && !list) {
         dprintf(2, "%s",
             "ping: missing host operand\nTry 'ping -?' for more information.\n");
         if (list)
@@ -131,7 +147,7 @@ static struct addrinfo *getIp(struct addrinfo *client,
 }
 
 static void    pingStart(int argc, char *argv[],
-    struct s_flags t_flags) {
+    struct s_flags *t_flags) {
     struct  addrinfo client;
     int     i = 1;
 
@@ -145,13 +161,13 @@ static void    pingStart(int argc, char *argv[],
         client.ai_protocol = IPPROTO_ICMP;
         client.ai_flags = AI_CANONNAME;
         listAddr = getIp(&client, argv, &i, t_flags);
-        if (t_flags.interrogation == TRUE) {
+        if (t_flags->interrogation == TRUE) {
             flagInterrogation();
             break ;
         }
-        fdSocket = openSocket(/*listAddr*/);
+        fdSocket = openSocket();
         //next part ping here
-        runIcmp(/*listAddr*/);
+        runIcmp(t_flags);
         freeaddrinfo(listAddr);
         if (fdSocket >= 0)
             close(fdSocket);
@@ -160,6 +176,8 @@ static void    pingStart(int argc, char *argv[],
 
 //ping [OPTIONS] host
 int main(int argc, char *argv[]) {
+    struct s_flags t_flags;
+
     ft_memset(pingMemory, 0, sizeof(pingMemory));
     ft_memset(&roundTripGlobal, 0, sizeof(struct s_round_trip));
     t_flags.v = FALSE;
@@ -174,6 +192,6 @@ int main(int argc, char *argv[]) {
         exit(64);
     }
     searchFlags(argv, &t_flags);
-    pingStart(argc, argv, t_flags);
+    pingStart(argc, argv, &t_flags);
     return (0);
 }

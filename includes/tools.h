@@ -41,6 +41,7 @@ struct s_round_trip {
     size_t  number;
     uint32_t    packetReceive;
     uint32_t    packetDuplicate;
+    uint32_t    packetSend;
 };
 
 void    exitInet(void);

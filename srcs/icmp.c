@@ -1,7 +1,6 @@
 #include "ft_icmp.h"
 #include "tools.h"
 
-int i = 0;
 /*
 void printBits(unsigned int num)
 {
@@ -27,15 +26,15 @@ void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
     struct s_ping_memory *ping, struct timeval *tvA, struct sockaddr_in *translate) {
     if (!ip || !icmp)
         exitInet();
-    uint8_t idSend = convertEndianess(ping->icmp.un.echo.id);
-    uint8_t seqSend = convertEndianess(ping->icmp.un.echo.sequence);
-    uint8_t idRequest = icmp->un.echo.id;
-    uint8_t seqRequest = icmp->un.echo.sequence;
+    //uint8_t idSend = convertEndianess(ping->icmp.un.echo.id);
+    //uint8_t seqSend = convertEndianess(ping->icmp.un.echo.sequence);
+    //uint8_t idRequest = icmp->un.echo.id;
+    //uint8_t seqRequest = icmp->un.echo.sequence;
     //Compare host ping Id/Request with client ping
     if (translate->sin_addr.s_addr != ip->saddr)
         return ;
-    if (idSend != idRequest || seqSend != seqRequest)
-        return ;
+    //if (idSend != idRequest/* || seqSend != seqRequest*/)
+    //    return ;
     time_t seconds = tvA->tv_sec - ping->tvB.tv_sec;
     suseconds_t microSeconds = tvA->tv_usec - ping->tvB.tv_usec;
     double milliSeconds = (seconds*1000.000000) + (microSeconds / 1000.000000);
@@ -102,6 +101,10 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
      //   printBits2((uint16_t)ping->tvB.tv_sec);
        // printBits2((uint16_t)ping->tvB.tv_usec);
     }
+    uint8_t idSend = convertEndianess(ping->icmp.un.echo.id);
+    uint8_t idRequest = icmp.un.echo.id;
+    if (idSend != idRequest)
+        return ;
     //printf("qqqqq%s %s\n", inet_ntop(AF_INET, &ip.saddr, str3, INET_ADDRSTRLEN),
     //    inet_ntop(AF_INET, &ip.daddr, str4, INET_ADDRSTRLEN));
     //printf("id: %u seq: %u\n", icmp.un.echo.id, icmp.un.echo.sequence);
@@ -178,7 +181,7 @@ void    icmpRequest() {
 
 /* send ping using signal alarm */
 void    sigHandlerAlrm(int sigNum) {
-    int cpyI = i;
+    int cpyI = roundTripGlobal.packetSend;
 
     if (sigNum != SIGALRM)
         return ;
@@ -193,7 +196,7 @@ void    sigHandlerAlrm(int sigNum) {
     pingMemory[cpyI].icmp.type = ICMP_ECHO;
     pingMemory[cpyI].icmp.code = 0;
     pingMemory[cpyI].icmp.un.echo.id = htons(getpid());
-    pingMemory[cpyI].icmp.un.echo.sequence = htons(i);
+    pingMemory[cpyI].icmp.un.echo.sequence = htons(roundTripGlobal.packetSend);
    // printf("del: %u %u\n", pingMemory[cpyI].icmp.un.echo.id, pingMemory[cpyI].icmp.un.echo.sequence);
     pingMemory[cpyI].icmp.checksum = 0;
     if (gettimeofday(&pingMemory[cpyI].tvB, 0) < 0) {
@@ -209,7 +212,7 @@ void    sigHandlerAlrm(int sigNum) {
     pingMemory[cpyI].icmp.checksum
         = checksum((uint16_t *)buff, sizeof(pingMemory[cpyI].icmp) + sizeof(pingMemory[cpyI].tvB) + 40);
     ft_memcpy(buff, &pingMemory[cpyI].icmp, sizeof(pingMemory[cpyI].icmp));
-    ++i;
+    roundTripGlobal.packetSend++;
     result = sendto(fdSocket, buff,
         ECHO_REQUEST_SIZE, 0,
         listAddr->ai_addr, sizeof(*listAddr->ai_addr));
@@ -233,7 +236,7 @@ void    sigHandlerAlrm(int sigNum) {
 */
 
 /* (ipv4 max)65535 - (sizeof ip)20 - (sizeof icmp)8 */
-void    runIcmp() {
+void    runIcmp(struct s_flags *t_flags) {
     if (!listAddr)
         exitInet();
     struct sockaddr_in *translate = (struct sockaddr_in *)listAddr->ai_addr;
@@ -252,7 +255,7 @@ void    runIcmp() {
     pingMemory[0].icmp.code = 0;
   //  printf("s: %lu\n", sizeof(get));
     pingMemory[0].icmp.un.echo.id = htons(getpid());
-    pingMemory[0].icmp.un.echo.sequence = htons(i);
+    pingMemory[0].icmp.un.echo.sequence = htons(roundTripGlobal.packetSend);
    // printf("del: %u %u\n", pingMemory[0].icmp.un.echo.id, pingMemory[0].icmp.un.echo.sequence);
     pingMemory[0].icmp.checksum = 0;
     //get time before substract
@@ -263,7 +266,7 @@ void    runIcmp() {
     printf("PING %s (%s): %lu data bytes", listAddr->ai_canonname,
         inetResult, ECHO_REQUEST_SIZE - sizeof(struct icmphdr));
     //jump line or display -v id option part
-    if (t_flags.v == FALSE)
+    if (t_flags->v == FALSE)
         printf("\n");
     else
         printf(", id 0x%04x = %u\n",
@@ -282,7 +285,7 @@ void    runIcmp() {
     pingMemory[0].icmp.checksum
         = checksum((uint16_t *)buff, sizeof(pingMemory[0].icmp) + sizeof(pingMemory[0].tvB) + 40);
     ft_memcpy(buff, &pingMemory[0].icmp, sizeof(pingMemory[0].icmp));
-    ++i;
+    roundTripGlobal.packetSend++;
     result = sendto(fdSocket, buff,
         ECHO_REQUEST_SIZE, 0,
         listAddr->ai_addr, sizeof(*listAddr->ai_addr));
