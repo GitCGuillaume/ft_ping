@@ -18,6 +18,8 @@
 #define FALSE 0
 #define NONE 20
 #define ICMP 1
+#define STDERR 2
+#define FQDN_MAX 255
 
 struct s_flags {
     char v;
@@ -48,7 +50,6 @@ void    exitInet(void);
 
 extern int fdSocket;
 extern struct  addrinfo *listAddr;
-extern struct s_flags t_flags;
 /*Store pings for recvMsg*/
 extern struct s_ping_memory    pingMemory[65536];
 extern struct s_round_trip  roundTripGlobal;

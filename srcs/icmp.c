@@ -77,13 +77,10 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
     struct sockaddr_in *translate = (struct sockaddr_in *)listAddr->ai_addr;
     uint16_t resultChecksum;
     struct s_ping_memory *ping = 0;
-    char str[16];
-    char str3[16];
-    char str4[16];
-
-    ft_memset(str, 0, 16);
-    ft_memset(str3, 0, 16);
-    ft_memset(str4, 0, 16);
+    char str[FQDN_MAX];
+    char str2[FQDN_MAX];
+    ft_memset(str, 0, FQDN_MAX);
+    ft_memset(str2, 0, FQDN_MAX);
     ft_memset(&ip, 0, sizeof(ip));
     ft_memset(&icmp, 0, sizeof(icmp));
     /* Get IPv4 from buffer  */
@@ -98,13 +95,11 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
         ping = &pingMemory[icmp.un.echo.sequence];
         if (!ping)
             return ;
-     //   printBits2((uint16_t)ping->tvB.tv_sec);
-       // printBits2((uint16_t)ping->tvB.tv_usec);
+        uint8_t idSend = convertEndianess(ping->icmp.un.echo.id);
+        uint8_t idRequest = icmp.un.echo.id;
+        if (idSend != idRequest)
+            return ;
     }
-    uint8_t idSend = convertEndianess(ping->icmp.un.echo.id);
-    uint8_t idRequest = icmp.un.echo.id;
-    if (idSend != idRequest)
-        return ;
     //printf("qqqqq%s %s\n", inet_ntop(AF_INET, &ip.saddr, str3, INET_ADDRSTRLEN),
     //    inet_ntop(AF_INET, &ip.daddr, str4, INET_ADDRSTRLEN));
     //printf("id: %u seq: %u\n", icmp.un.echo.id, icmp.un.echo.sequence);
@@ -115,10 +110,29 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
     //printf("PID: %u Pseq: %u\n", convertEndianess(ping->icmp.un.echo.id),
      //   convertEndianess(ping->icmp.un.echo.sequence));
      //   printf("\n");
+    //const char *ntop = inet_ntop(AF_INET, &ip.saddr, str, INET_ADDRSTRLEN);
+    //if (!ntop)
+    //    exitInet();
     const char *ntop = inet_ntop(AF_INET, &ip.saddr, str, INET_ADDRSTRLEN);
     if (!ntop)
         exitInet();
-    printf("%lu bytes from %s: ", recv, ntop);
+    printf("allo: %s\n", ntop);
+    if (icmp.type == 11) {// if (icmp.type == 0) {
+       struct sockaddr_in  fqdn;
+        ft_memset(&fqdn, 0, sizeof(fqdn));
+        fqdn.sin_family = AF_INET;
+        fqdn.sin_addr.s_addr = ip.saddr;
+        const int getNameResult
+            = getnameinfo((const struct sockaddr *)&fqdn, sizeof(fqdn),
+                str, sizeof(str), str2, sizeof(str2), NI_NAMEREQD);
+        printf("allo: %s\n", ntop);
+        printf("res: %d str: %s str2: %s\n", getNameResult, str, str2);
+        if (getNameResult != 0)
+            exitInet();
+        printf("%lu bytes from %s (%s): ", recv, str, ntop);
+    } else {
+        printf("%lu bytes from %s: ", recv, ntop);
+    }
     //printf("resultC: %x chk: %x\n", resultChecksum, icmp.checksum);
     if (resultChecksum != 0) {
         printf("resultChecksum: %hu\ncode: icmp.code: %hu type: %hu\n", resultChecksum, icmp.code, icmp.type);

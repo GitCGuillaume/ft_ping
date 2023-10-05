@@ -6,7 +6,6 @@ struct s_ping_memory    pingMemory[65536];
 struct  addrinfo *listAddr = 0;//need to be cleaned in CTRL+C + alarm(function is sigHandlerAlrm)
 struct s_round_trip  roundTripGlobal;//mainly for signal function...
 int fdSocket;//must be also closed on CTRL+C etc
-char*   destinationName;//used for CTRL +C signal function...
 
 /*
     Heron's method
@@ -35,15 +34,17 @@ static void    sigHandlerInt(int sigNum) {
 
     if (sigNum != SIGINT)
         return ;
+    if (!listAddr) {
+        close(fdSocket);
+        exit(1);
+    }
     if (fdSocket >= 0)
         close(fdSocket);
-    if  (listAddr)
-        freeaddrinfo(listAddr);
     if (roundTripGlobal.number != 0) {
         average = roundTripGlobal.sum / roundTripGlobal.number;
         stdDev = ftSqrt((roundTripGlobal.squareSum / roundTripGlobal.number) - (average * average));
     }
-    printf("--- %s ping statistics ---\n", destinationName);
+    printf("--- %s ping statistics ---\n", listAddr->ai_canonname);
     printf("%u packets transmitted, %u packets received",
         roundTripGlobal.packetSend,
         roundTripGlobal.packetReceive);
@@ -58,6 +59,8 @@ static void    sigHandlerInt(int sigNum) {
             * 100.000000;
         printf(", %.0f%% packet loss\n", loseRatePct);
     }
+    if  (listAddr)
+        freeaddrinfo(listAddr);
     if (roundTripGlobal.number != 0) {
         printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f\n",
         roundTripGlobal.rtt[0],
@@ -77,7 +80,7 @@ static int openSocket(/*struct addrinfo *listAddr*/) {
     if (!listAddr)
         exit(EXIT_FAILURE);
     struct addrinfo *mem = listAddr;
-    int    ttl = 255;
+    int    ttl = 1;
     int     fd = -1;
 
     while (mem)
@@ -110,21 +113,26 @@ static void    searchFlags(char *argv[], struct s_flags *t_flags) {
             t_flags->interrogation = TRUE;
     }
 }
-
-static struct addrinfo *getIp(struct addrinfo *client,
-    char *argv[], int *i, struct s_flags *t_flags) {
-    struct addrinfo *list = 0;
+/*man getaddrinfo > man 5 services (0)*/
+static struct addrinfo *getIp(char *argv[], int *i, struct s_flags *t_flags) {
+    struct addrinfo *list = 0, client;
     //struct sockaddr_in *translate;
     int result = 0;
 
     for (; argv[*i] != NULL; ++(*i)) {
         if (argv[*i][0] != '-') {
-            result = getaddrinfo(argv[*i], NULL, client, &list);
+            ft_memset(&client, 0, sizeof(struct addrinfo));
+            client.ai_family = AF_INET;
+            client.ai_socktype = SOCK_RAW;
+            client.ai_protocol = IPPROTO_ICMP;
+            client.ai_flags = AI_CANONNAME;
+            result = getaddrinfo(argv[*i], NULL, &client, &list);
             if (result != 0) {
-                dprintf(2, "%s\n", gai_strerror(result));
-                exit(result);
+                dprintf(STDERR, "ping: %s\n", "unknown host");
+                if (list)
+                    freeaddrinfo(list);
+                exit(EXIT_FAILURE);
             }
-            destinationName = argv[*i];
             break ;
         }
     }
@@ -148,19 +156,14 @@ static struct addrinfo *getIp(struct addrinfo *client,
 
 static void    pingStart(int argc, char *argv[],
     struct s_flags *t_flags) {
-    struct  addrinfo client;
+    
     int     i = 1;
 
     //init part
     if (signal(SIGINT, sigHandlerInt) == SIG_ERR)
         exitInet();
     for (; i < argc; ++i) {
-        ft_memset(&client, 0, sizeof(struct addrinfo));
-        client.ai_family = AF_INET;
-        client.ai_socktype = SOCK_RAW;
-        client.ai_protocol = IPPROTO_ICMP;
-        client.ai_flags = AI_CANONNAME;
-        listAddr = getIp(&client, argv, &i, t_flags);
+        listAddr = getIp(argv, &i, t_flags);
         if (t_flags->interrogation == TRUE) {
             flagInterrogation();
             break ;
