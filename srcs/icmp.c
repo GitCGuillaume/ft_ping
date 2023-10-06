@@ -77,10 +77,9 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
     struct sockaddr_in *translate = (struct sockaddr_in *)listAddr->ai_addr;
     uint16_t resultChecksum;
     struct s_ping_memory *ping = 0;
-    char str[FQDN_MAX];
-    char str2[FQDN_MAX];
-    ft_memset(str, 0, FQDN_MAX);
-    ft_memset(str2, 0, FQDN_MAX);
+    char dest[INET_ADDRSTRLEN];
+    
+    ft_memset(dest, 0, INET_ADDRSTRLEN);
     ft_memset(&ip, 0, sizeof(ip));
     ft_memset(&icmp, 0, sizeof(icmp));
     /* Get IPv4 from buffer  */
@@ -89,15 +88,21 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
     /* Get Icmp from buffer */
     resultChecksum = checksum((uint16_t *)buff, sizeof(icmp) + sizeof(struct timeval) + 40);
     parseIcmp(&icmp, buff);
+    if (icmp.type > 18)
+        return ;
     if (icmp.type == 8)
         return ;
     if (icmp.type == 0 && icmp.code == 0) {
+        //printf("seq: %u\n", icmp.un.echo.sequence);
         ping = &pingMemory[icmp.un.echo.sequence];
         if (!ping)
-            return ;
-        uint8_t idSend = convertEndianess(ping->icmp.un.echo.id);
-        uint8_t idRequest = icmp.un.echo.id;
-        if (idSend != idRequest)
+            return ;   
+        uint16_t initialId = convertEndianess(pingMemory[0].icmp.un.echo.id);
+        uint16_t idRequest = icmp.un.echo.id;
+        //printf("sans convert: %u\nidS: %u idR: %u\n", ping->icmp.un.echo.id, initialId, idRequest);
+       // printf("id: %u idS: %u idR: %u\n", ping->icmp.un.echo.id,
+         //   pingMemory[0].icmp.un.echo.id, idRequest);
+        if (initialId != idRequest)
             return ;
     }
     //printf("qqqqq%s %s\n", inet_ntop(AF_INET, &ip.saddr, str3, INET_ADDRSTRLEN),
@@ -113,53 +118,61 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
     //const char *ntop = inet_ntop(AF_INET, &ip.saddr, str, INET_ADDRSTRLEN);
     //if (!ntop)
     //    exitInet();
-    const char *ntop = inet_ntop(AF_INET, &ip.saddr, str, INET_ADDRSTRLEN);
+    const char *ntop = inet_ntop(AF_INET, &ip.saddr, dest, INET_ADDRSTRLEN);
     if (!ntop)
         exitInet();
-    printf("allo: %s\n", ntop);
+    //printf("allo: %s dest: %s\n", ntop, dest);
+    if (resultChecksum != 0)
+            printf("checksum mismatch from %s\n", ntop);
     if (icmp.type == 11) {// if (icmp.type == 0) {
-       struct sockaddr_in  fqdn;
+        struct sockaddr_in  fqdn;
+        char host[FQDN_MAX];
+        char serv[FQDN_MAX];
+
         ft_memset(&fqdn, 0, sizeof(fqdn));
+        ft_memset(host, 0, FQDN_MAX);
+        ft_memset(serv, 0, FQDN_MAX);
         fqdn.sin_family = AF_INET;
         fqdn.sin_addr.s_addr = ip.saddr;
         const int getNameResult
             = getnameinfo((const struct sockaddr *)&fqdn, sizeof(fqdn),
-                str, sizeof(str), str2, sizeof(str2), NI_NAMEREQD);
-        printf("allo: %s\n", ntop);
-        printf("res: %d str: %s str2: %s\n", getNameResult, str, str2);
+                host, sizeof(host), serv, sizeof(serv), NI_NAMEREQD);
+        //printf("allo: %s\n", ntop);
+        //printf("res: %d str: %s serv: %s\n", getNameResult, host, serv);
         if (getNameResult != 0)
             exitInet();
-        printf("%lu bytes from %s (%s): ", recv, str, ntop);
+        printf("%lu bytes from %s (%s): ", recv, host, ntop);
     } else {
         printf("%lu bytes from %s: ", recv, ntop);
     }
     //printf("resultC: %x chk: %x\n", resultChecksum, icmp.checksum);
-    if (resultChecksum != 0) {
-        printf("resultChecksum: %hu\ncode: icmp.code: %hu type: %hu\n", resultChecksum, icmp.code, icmp.type);
-        getIcmpCode(&ip, &icmp, translate, buff, recv);
-    } else {
-        if (icmp.type == 0) {
-            if (!ping)
+    //if (resultChecksum != 0) {
+        //printf("resultChecksum: %hu\ncode: icmp.code: %hu type: %hu\n", resultChecksum, icmp.code, icmp.type);
+        
+    //    getIcmpCode(&ip, &icmp, translate, buff, recv);
+    //} else {
+    if (icmp.type == 0) {
+        if (!ping)
+            return ;
+        buff += sizeof(struct icmphdr);
+        //-8 mean remove icmp header size
+        //uint16_t checksumOriginal = checksum((uint16_t *)&ping->tvB, sizeof(struct timeval));
+        //uint16_t checksumTimevalBuffer = checksum((uint16_t *)buff, sizeof(struct timeval));
+        buff += 16;
+        recv -= sizeof(struct timeval) + sizeof(struct icmphdr);
+        /*if (checksumOriginal != checksumTimevalBuffer) {
+            return ;
+        }*/
+        for (int i = 0; i < recv; i++) {
+            if (buff[i] != i)
                 return ;
-            buff += sizeof(struct icmphdr);
-            //-8 mean remove icmp header size
-            uint16_t checksumOriginal = checksum((uint16_t *)&ping->tvB, sizeof(struct timeval));
-            uint16_t checksumTimevalBuffer = checksum((uint16_t *)buff, sizeof(struct timeval));
-
-            buff += 16;
-            recv -= sizeof(struct timeval) + sizeof(struct icmphdr);
-            if (checksumOriginal != checksumTimevalBuffer)
-                return ;
-            for (int i = 0; i < recv; i++) {
-                if (buff[i] != i)
-                    return ;
-            }
-            displayResponse(&ip, &icmp, ping, tvA, translate);
         }
-        else
-            getIcmpCode(&ip, &icmp, translate, buff, recv);
-        printf("\n");
+        displayResponse(&ip, &icmp, ping, tvA, translate);
     }
+    else
+        getIcmpCode(&ip, &icmp, translate, buff, recv);
+    printf("\n");
+    //}
     //ft_memset(&pingMemory[icmp.un.echo.sequence], 0, sizeof(struct s_ping_memory));
 }
 

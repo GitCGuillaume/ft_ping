@@ -49,7 +49,7 @@ static void    sigHandlerInt(int sigNum) {
         roundTripGlobal.packetSend,
         roundTripGlobal.packetReceive);
     if (roundTripGlobal.packetDuplicate != 0)
-        printf(", +%u duplicates", 0);
+        printf(", +%u duplicates", roundTripGlobal.packetDuplicate);
     if (roundTripGlobal.packetReceive > roundTripGlobal.packetSend)
         printf(", -- somebody is printing forged packets!\n");
     else if (roundTripGlobal.packetSend != 0) {
@@ -80,9 +80,18 @@ static int openSocket(/*struct addrinfo *listAddr*/) {
     if (!listAddr)
         exit(EXIT_FAILURE);
     struct addrinfo *mem = listAddr;
-    int    ttl = 1;
+    int    ttl = 60;
     int     fd = -1;
 
+    if (ttl == 0) {
+        printf("ping: option value too small: %d\n", ttl);
+        freeaddrinfo(listAddr);
+        exit(1);
+    } else if (ttl < 0 || ttl > 255) {
+        printf("ping: option value too big: %d\n", ttl);
+        freeaddrinfo(listAddr);
+        exit(1);
+    }
     while (mem)
     {
         fd = socket(mem->ai_family, mem->ai_socktype, mem->ai_protocol);
@@ -113,6 +122,7 @@ static void    searchFlags(char *argv[], struct s_flags *t_flags) {
             t_flags->interrogation = TRUE;
     }
 }
+
 /*man getaddrinfo > man 5 services (0)*/
 static struct addrinfo *getIp(char *argv[], int *i, struct s_flags *t_flags) {
     struct addrinfo *list = 0, client;
