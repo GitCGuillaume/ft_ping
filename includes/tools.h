@@ -32,7 +32,7 @@ struct s_flags {
 */
 struct s_ping_memory {
     struct icmphdr  icmp;
-    struct timeval tvB;
+    //struct timeval tvB;
     char    dup;
 };
 /*[0]=min [1]=max*/
