@@ -49,6 +49,7 @@ struct s_round_trip {
 void    exitInet(void);
 
 extern int fdSocket;
+extern struct s_flags t_flags;
 extern struct  addrinfo *listAddr;
 /*Store pings for recvMsg*/
 extern struct s_ping_memory    pingMemory[65536];

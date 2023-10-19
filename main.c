@@ -5,6 +5,7 @@
 struct s_ping_memory    pingMemory[65536];
 struct  addrinfo *listAddr = 0;//need to be cleaned in CTRL+C + alarm(function is sigHandlerAlrm)
 struct s_round_trip  roundTripGlobal;//mainly for signal function...
+struct s_flags t_flags;
 int fdSocket;//must be also closed on CTRL+C etc
 
 /*
@@ -80,7 +81,7 @@ static int openSocket(/*struct addrinfo *listAddr*/) {
     if (!listAddr)
         exit(EXIT_FAILURE);
     struct addrinfo *mem = listAddr;
-    int    ttl = 60;
+    int    ttl = 2;
     int     fd = -1;
 
     if (ttl == 0) {
@@ -114,17 +115,17 @@ static int openSocket(/*struct addrinfo *listAddr*/) {
     return (fd);
 }
 
-static void    searchFlags(char *argv[], struct s_flags *t_flags) {
+static void    searchFlags(char *argv[]) {
     for (int i = 1; argv[i] != NULL; ++i) {
         if (argv[i][0] == '-' && argv[i][1] == 'v')
-            t_flags->v = TRUE;
+            t_flags.v = TRUE;
         else if (argv[i][0] == '-' && argv[i][1] == '?')
-            t_flags->interrogation = TRUE;
+            t_flags.interrogation = TRUE;
     }
 }
 
 /*man getaddrinfo > man 5 services (0)*/
-static struct addrinfo *getIp(char *argv[], int *i, struct s_flags *t_flags) {
+static struct addrinfo *getIp(char *argv[], int *i) {
     struct addrinfo *list = 0, client;
     //struct sockaddr_in *translate;
     int result = 0;
@@ -154,7 +155,7 @@ static struct addrinfo *getIp(char *argv[], int *i, struct s_flags *t_flags) {
             inet_ntop(AF_INET, &translate->sin_addr, str, INET_ADDRSTRLEN));
         ft_memset(str, 0, 1001);
     }*/
-    if (t_flags->interrogation == FALSE && !list) {
+    if (t_flags.interrogation == FALSE && !list) {
         dprintf(2, "%s",
             "ping: missing host operand\nTry 'ping -?' for more information.\n");
         if (list)
@@ -164,8 +165,7 @@ static struct addrinfo *getIp(char *argv[], int *i, struct s_flags *t_flags) {
     return (list);
 }
 
-static void    pingStart(int argc, char *argv[],
-    struct s_flags *t_flags) {
+static void    pingStart(int argc, char *argv[]) {
     
     int     i = 1;
 
@@ -173,14 +173,14 @@ static void    pingStart(int argc, char *argv[],
     if (signal(SIGINT, sigHandlerInt) == SIG_ERR)
         exitInet();
     for (; i < argc; ++i) {
-        listAddr = getIp(argv, &i, t_flags);
-        if (t_flags->interrogation == TRUE) {
+        listAddr = getIp(argv, &i);
+        if (t_flags.interrogation == TRUE) {
             flagInterrogation();
             break ;
         }
         fdSocket = openSocket();
         //next part ping here
-        runIcmp(t_flags);
+        runIcmp();
         freeaddrinfo(listAddr);
         if (fdSocket >= 0)
             close(fdSocket);
@@ -189,8 +189,6 @@ static void    pingStart(int argc, char *argv[],
 
 //ping [OPTIONS] host
 int main(int argc, char *argv[]) {
-    struct s_flags t_flags;
-
     ft_memset(pingMemory, 0, sizeof(pingMemory));
     ft_memset(&roundTripGlobal, 0, sizeof(struct s_round_trip));
     t_flags.v = FALSE;
@@ -204,7 +202,7 @@ int main(int argc, char *argv[]) {
         dprintf(2, "%s", "ping: missing host operand\nTry 'ping -?' for more information.\n");
         exit(64);
     }
-    searchFlags(argv, &t_flags);
-    pingStart(argc, argv, &t_flags);
+    searchFlags(argv);
+    pingStart(argc, argv);
     return (0);
 }

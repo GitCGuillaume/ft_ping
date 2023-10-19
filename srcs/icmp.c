@@ -11,15 +11,7 @@ void printBits(unsigned int num)
    }
    printf("\n");
 }*/
-void printBits2(uint16_t num)
-{
-   for(uint16_t bit=0;bit< 16; bit++)
-   {
-      printf("%i ", num & 0x01);
-      num = num >> 1;
-   }
-   printf("\n");
-}
+
 
 /* Display response from target using IPv4 and Icmp structure */
 void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
@@ -129,7 +121,7 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
     //printf("allo: %s dest: %s\n", ntop, dest);
     if (resultChecksum != 0 && icmp.type != 3)
             printf("checksum mismatch from %s\n", ntop);
-    if (icmp.type != 8) {// if (icmp.type == 0) {
+    if (icmp.type != 0) {// if (icmp.type == 0) {
         struct sockaddr_in  fqdn;
         char host[FQDN_MAX];
         char serv[FQDN_MAX];
@@ -142,11 +134,11 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
         const int getNameResult
             = getnameinfo((const struct sockaddr *)&fqdn, sizeof(fqdn),
                 host, sizeof(host), serv, sizeof(serv), NI_NAMEREQD);
-        //printf("allo: %s\n", ntop);
-        //printf("res: %d str: %s serv: %s\n", getNameResult, host, serv);
+        //getnameinfo does still reachable if error
         if (getNameResult != 0)
-            exitInet();
-        printf("%lu bytes from %s (%s): ", recv, host, ntop);
+            printf("%lu bytes from %s: ", recv, ntop);
+        else
+            printf("%lu bytes from %s (%s): ", recv, host, ntop);
     } else {
         printf("%lu bytes from %s: ", recv, ntop);
     }
@@ -180,8 +172,9 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
         }
         displayResponse(&ip, &icmp, ping, tvA, tvB, translate);
     }
-    else
+    else{
         getIcmpCode(&ip, &icmp, translate, buff, recv);
+    }
     printf("\n");
     //}
     //ft_memset(&pingMemory[icmp.un.echo.sequence], 0, sizeof(struct s_ping_memory));
@@ -275,7 +268,7 @@ void    sigHandlerAlrm(int sigNum) {
 */
 
 /* (ipv4 max)65535 - (sizeof ip)20 - (sizeof icmp)8 */
-void    runIcmp(struct s_flags *t_flags) {
+void    runIcmp() {
     if (!listAddr)
         exitInet();
     struct sockaddr_in *translate = (struct sockaddr_in *)listAddr->ai_addr;
@@ -306,7 +299,7 @@ void    runIcmp(struct s_flags *t_flags) {
     printf("PING %s (%s): %lu data bytes", listAddr->ai_canonname,
         inetResult, ECHO_REQUEST_SIZE - sizeof(struct icmphdr));
     //jump line or display -v id option part
-    if (t_flags->v == FALSE)
+    if (t_flags.v == FALSE)
         printf("\n");
     else
         printf(", id 0x%04x = %u\n",

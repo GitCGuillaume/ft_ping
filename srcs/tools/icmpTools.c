@@ -19,15 +19,28 @@ void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump) 
     *addr = (*addr & ~mask) | ((*(buff + jump) << nb) & mask);
 }
 
+void printBits2(uint32_t num)
+{
+   for(uint16_t bit=0;bit< sizeof(uint32_t) * 8; bit++)
+   {
+      printf("%i ", num & 0x01);
+      num = num >> 1;
+   }
+   printf("\n");
+}
+
 /* Parse using mask */
 void    parseIp(struct iphdr *ip, char *buff) {
     if (!ip || !buff)
         exitInet();
+    //printBits2(*buff);
     ip->ihl = *buff & 0xF;
     *buff = *buff >> 4;//take half
     ip->version = *buff;
     ++buff;
+    //printBits2(*buff);
     ip->tos = *buff;
+    //printBits2(ip->tos);
     ++buff;
     bitMask(&ip->tot_len, 0xFF00, buff, 8, 0);
     bitMask(&ip->tot_len, 0xFF, buff, 0, 1);
@@ -205,14 +218,30 @@ void    addressReply(uint8_t code) {
     
 }
 
+/*
+    https://datatracker.ietf.org/doc/html/rfc2474#section-3
+*/
+void    headerDump(struct iphdr *ip, struct icmphdr *icmp) {
+    /* Display header*/
+    printf("\nIP Hdr Dump:\n %u%u%hhu%hhu %04x",
+        ip->version, ip->ihl, ip->tos & 0xFC, ip->tos & 0x3, ip->tot_len);
+    printf(" %04x %04x %02hhu%02hhu", ip->id, ip->frag_off, ip->ttl, ip->protocol);
+    printf(" %04x %04hx %04hx %04hx %04hx\n", ip->check,
+        convertEndianess(ip->saddr & 0x0000FFFF), convertEndianess(ip->saddr >> 16),
+        convertEndianess(ip->daddr & 0x0000FFFF), convertEndianess(ip->daddr >> 16));
+    /* Display header verbose */
+    printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src      Dst     Data\n");
+    printf("%2u %2u  %hhu%hhu %04x",
+        ip->version, ip->ihl, ip->tos & 0xFC, ip->tos & 0x3, convertEndianess(ip->tot_len));
+}
 
 /*
     convertEndianess == need to convert from
     big endian to little endian (ping is from sendto)
 */
-unsigned char isReplyOk(struct iphdr *ip,
+unsigned char isReplyOk(struct iphdr *ip, struct iphdr *ipOriginal,
     struct sockaddr_in *translate, char *buff, ssize_t recv) {
-    struct iphdr    ipOriginal;
+    //struct iphdr    ipOriginal;
     struct icmphdr  icmpOriginal;
     struct icmphdr  *icmp;
     struct s_ping_memory *ping;
@@ -223,11 +252,9 @@ unsigned char isReplyOk(struct iphdr *ip,
     if (recv < 8)
         return (FALSE);
     //printf("recv: %ld\n", recv);
-    parseIp(&ipOriginal, buff);
-    buff += sizeof(struct iphdr);
-    if (ipOriginal.protocol != ICMP)
+    if (ipOriginal->protocol != ICMP)
         return (FALSE);
-    if (translate->sin_addr.s_addr != ipOriginal.daddr) {
+    if (translate->sin_addr.s_addr != ipOriginal->daddr) {
         return (FALSE);
     }
     recv -= sizeof(struct icmphdr);
@@ -263,12 +290,15 @@ void getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
     //list of icmp macro
     if (!icmp)
         return ;
+    struct iphdr ipOriginal;
     char str[16];
     char str2[16];
 
     if (icmp->type != 12)
         buff += sizeof(struct icmphdr);
-    if (isReplyOk(ip, translate, buff, recv) == FALSE){
+    parseIp(&ipOriginal, buff);
+    buff += sizeof(struct iphdr);
+    if (isReplyOk(ip, &ipOriginal, translate, buff, recv) == FALSE){
         return ;
     }
     ft_memset(str, 0, 16);
@@ -307,4 +337,7 @@ void getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
     }
     if (functionCall)
            functionCall(icmp->code);
+    if (t_flags.v == TRUE) {
+        headerDump(&ipOriginal, icmp);
+    }
 }

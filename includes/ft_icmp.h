@@ -16,7 +16,7 @@ uint16_t    checksum(uint16_t *hdr, size_t len);
 void    bitMask(uint16_t *addr, uint16_t mask, char *buff, int nb, int jump);
 void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump);
 uint16_t    convertEndianess(uint16_t echoVal);
-void    runIcmp(struct s_flags *t_flags);
+void    runIcmp();
 void    getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
     struct sockaddr_in *translate, char *buff, ssize_t recv);
 void    parseIp(struct iphdr *ip, char *buff);
