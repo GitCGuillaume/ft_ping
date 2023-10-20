@@ -116,11 +116,35 @@ static int openSocket(/*struct addrinfo *listAddr*/) {
 }
 
 static void    searchFlags(char *argv[]) {
+    int j = 0;
+    short int    list[126];
+    char hasMinus;
+
+    ft_memset(list, -1, sizeof(list));
+    //list['-'] = 1;
+    list['v'] = 1;
+    list['?'] = 1;
     for (int i = 1; argv[i] != NULL; ++i) {
-        if (argv[i][0] == '-' && argv[i][1] == 'v')
-            t_flags.v = TRUE;
-        else if (argv[i][0] == '-' && argv[i][1] == '?')
-            t_flags.interrogation = TRUE;
+        hasMinus = FALSE;
+        if (argv[i][0] == '-') {
+            hasMinus = TRUE;
+        }
+        if (hasMinus == TRUE) {
+            for (j = 1; argv[i][j] != '\0'; j++) {
+                if (list[(short int)argv[i][j]] == (short int)-1
+                    && t_flags.interrogation == FALSE) {
+                    dprintf(2, "%s%c%c\n", "ping: invalid option -- \'", argv[i][j], '\'');
+                    dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
+                    exit(64);
+                } else if (argv[i][j] == 'v')
+                    t_flags.v = TRUE;
+                else if (argv[i][j] == '?') {
+                    t_flags.interrogation = TRUE;
+                    flagInterrogation();
+                    exit(0);
+                }
+            }
+        }
     }
 }
 
@@ -174,10 +198,6 @@ static void    pingStart(int argc, char *argv[]) {
         exitInet();
     for (; i < argc; ++i) {
         listAddr = getIp(argv, &i);
-        if (t_flags.interrogation == TRUE) {
-            flagInterrogation();
-            break ;
-        }
         fdSocket = openSocket();
         //next part ping here
         runIcmp();
