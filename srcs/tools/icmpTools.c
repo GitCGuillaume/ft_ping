@@ -19,9 +19,9 @@ void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump) 
     *addr = (*addr & ~mask) | ((*(buff + jump) << nb) & mask);
 }
 
-void printBits2(uint32_t num)
+void printBits2(size_t num)
 {
-   for(uint16_t bit=0;bit< sizeof(uint32_t) * 8; bit++)
+   for(size_t bit=0;bit< sizeof(size_t) * 8; bit++)
    {
       printf("%i ", num & 0x01);
       num = num >> 1;
@@ -99,17 +99,67 @@ void    parseIcmp(struct icmphdr  *icmp, char *buff) {
     }
 }
 
-/* max 16bits */
+/*
+    max 16bits (65535 bits) to return
+*/
 uint16_t    checksum(uint16_t *hdr, size_t len) {
+    size_t sum = 0;
+
+    //do sum of unsigned short
+    while (1 < len) {
+        sum += *hdr++;
+        len -= sizeof(uint16_t);
+    }
+    if (len > 1)
+        sum += *hdr;
+    printf("--\n");
+    printf("sizeof: %lu\n", sizeof(sum));
+    printf("sum:%lu\n", sum);
+    printBits2(sum);
+    printf("sum>>16:%lu\n", sum >> 16);
+    printBits2(sum >> 16);
+    printf("(sum & 0xFFFF): %lu\n", sum & 0xFFFF);
+    printBits2(sum & 0xFFFF);
+    //my sum is obviously too big
+    if (sum >> 16)
+        sum = (sum & 0xFFFF) + (sum >> 16);
+    printBits2(~sum);
+    printf("sum:%lx\n", sum);
+    printf("sum:%lx\n", ~sum);
+    
+    //do ones's complement
+    printf("--\n");
+    return (~sum);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* max 16bits */
+/*uint16_t    checksum(uint16_t *hdr, size_t len) {
     size_t sum = 0;
 
     while (len > 1) {
         //printf("*hdr:%x\n", *hdr);
         sum += *hdr++;
         len -= sizeof(uint16_t);
-    }
+    }*/
     /* if len is odd */
-    if (len > 0) {
+    /*if (len > 0) {
         sum += *hdr;
     }
     //if sum superior than 16 bits,
@@ -118,7 +168,7 @@ uint16_t    checksum(uint16_t *hdr, size_t len) {
         sum = (sum & 0xFFFF) + (sum >> 16);
     }
     return (~sum); //complement one' from sum
-}
+}*/
 
 /*  Convert big endian to little endian
     0 0 1 1 1 1 1 1 >> 8 && << 8 1 0 1 1 0 0 0 1
@@ -232,7 +282,8 @@ void    headerDump(struct iphdr *ip, struct icmphdr *icmp) {
     /* Display header verbose */
     printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src      Dst     Data\n");
     printf("%2u %2u  %hhu%hhu %04x",
-        ip->version, ip->ihl, ip->tos & 0xFC, ip->tos & 0x3, convertEndianess(ip->tot_len));
+        ip->version, ip->ihl, ip->tos & 0xFC,
+        ip->tos & 0x3, convertEndianess(ip->tot_len));
     printf(" %hx", ip->id);
 }
 

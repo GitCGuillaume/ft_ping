@@ -81,7 +81,7 @@ static int openSocket(/*struct addrinfo *listAddr*/) {
     if (!listAddr)
         exit(EXIT_FAILURE);
     struct addrinfo *mem = listAddr;
-    int    ttl = 2;
+    int    ttl = 60;
     int     fd = -1;
 
     if (ttl == 0) {
