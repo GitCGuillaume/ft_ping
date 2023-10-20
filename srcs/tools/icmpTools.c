@@ -233,6 +233,7 @@ void    headerDump(struct iphdr *ip, struct icmphdr *icmp) {
     printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src      Dst     Data\n");
     printf("%2u %2u  %hhu%hhu %04x",
         ip->version, ip->ihl, ip->tos & 0xFC, ip->tos & 0x3, convertEndianess(ip->tot_len));
+    printf(" %hx", ip->id);
 }
 
 /*
