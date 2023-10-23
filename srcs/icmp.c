@@ -93,7 +93,7 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
         //printf("seq: %u\n", icmp.un.echo.sequence);
         ping = &pingMemory[icmp.un.echo.sequence];
         if (!ping)
-            return ;   
+            return ;
         uint16_t initialId = convertEndianess(pingMemory[0].icmp.un.echo.id);
         uint16_t idRequest = icmp.un.echo.id;
         //printf("sans convert: %u\nidS: %u idR: %u\n", ping->icmp.un.echo.id, initialId, idRequest);

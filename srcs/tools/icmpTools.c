@@ -23,7 +23,7 @@ void printBits2(size_t num)
 {
    for(size_t bit=0;bit< sizeof(size_t) * 8; bit++)
    {
-      printf("%i ", num & 0x01);
+      printf("%li ", num & 0x01);
       num = num >> 1;
    }
    printf("\n");
@@ -103,72 +103,21 @@ void    parseIcmp(struct icmphdr  *icmp, char *buff) {
     max 16bits (65535 bits) to return
 */
 uint16_t    checksum(uint16_t *hdr, size_t len) {
-    size_t sum = 0;
+    size_t  sum = 0;
+    uint8_t  minus = sizeof(uint16_t);
 
-    //do sum of unsigned short
+    //1 < because unsigned on odd, better not overflow
     while (1 < len) {
         sum += *hdr++;
-        len -= sizeof(uint16_t);
+        len -= minus;
     }
-    if (len > 1)
+    if (len != 0)
         sum += *hdr;
-    printf("--\n");
-    printf("sizeof: %lu\n", sizeof(sum));
-    printf("sum:%lu\n", sum);
-    printBits2(sum);
-    printf("sum>>16:%lu\n", sum >> 16);
-    printBits2(sum >> 16);
-    printf("(sum & 0xFFFF): %lu\n", sum & 0xFFFF);
-    printBits2(sum & 0xFFFF);
-    //my sum is obviously too big
-    if (sum >> 16)
-        sum = (sum & 0xFFFF) + (sum >> 16);
-    printBits2(~sum);
-    printf("sum:%lx\n", sum);
-    printf("sum:%lx\n", ~sum);
-    
-    //do ones's complement
-    printf("--\n");
+    while (sum >> 16) {
+        sum = (sum & 0x0000FFFF) + (sum >> 16);
+    }
     return (~sum);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* max 16bits */
-/*uint16_t    checksum(uint16_t *hdr, size_t len) {
-    size_t sum = 0;
-
-    while (len > 1) {
-        //printf("*hdr:%x\n", *hdr);
-        sum += *hdr++;
-        len -= sizeof(uint16_t);
-    }*/
-    /* if len is odd */
-    /*if (len > 0) {
-        sum += *hdr;
-    }
-    //if sum superior than 16 bits,
-    //get 16's least significants bits + 16's most significant bits
-    if (sum >> 16) {
-        sum = (sum & 0xFFFF) + (sum >> 16);
-    }
-    return (~sum); //complement one' from sum
-}*/
 
 /*  Convert big endian to little endian
     0 0 1 1 1 1 1 1 >> 8 && << 8 1 0 1 1 0 0 0 1
@@ -284,7 +233,12 @@ void    headerDump(struct iphdr *ip, struct icmphdr *icmp) {
     printf("%2u %2u  %hhu%hhu %04x",
         ip->version, ip->ihl, ip->tos & 0xFC,
         ip->tos & 0x3, convertEndianess(ip->tot_len));
-    printf(" %hx", ip->id);
+    printf(" %hx %3hhu", ip->id, ip->frag_off & 0xE000);
+    
+    printf("\n");
+    printBits2(ip->frag_off);
+    printf("\n");
+    printBits2(ip->frag_off & 0xE000);
 }
 
 /*
