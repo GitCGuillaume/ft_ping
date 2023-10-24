@@ -274,13 +274,13 @@ void    runIcmp() {
     struct sockaddr_in *translate = (struct sockaddr_in *)listAddr->ai_addr;
     struct timeval tvB;
     char buff[ECHO_REQUEST_SIZE];
-    char str[16];
+    char str[INET_ADDRSTRLEN];
     int result = -1;
 
     if (signal(SIGALRM, sigHandlerAlrm) == SIG_ERR)
         exitInet();
     //init vars part
-    ft_memset(str, 0, 16);
+    ft_memset(str, 0, INET_ADDRSTRLEN);
     //ft_memset(&pingMemory[0].icmp, 0, sizeof(struct icmphdr));
     //ft_memset(&pingMemory[0].rv, 0, sizeof(struct icmphdr));
     ft_memset(buff, 0, ECHO_REQUEST_SIZE);

@@ -220,8 +220,14 @@ void    addressReply(uint8_t code) {
 /*
     https://datatracker.ietf.org/doc/html/rfc2474#section-3
 */
-void    headerDump(struct iphdr *ip, struct icmphdr *icmp) {
+void    headerDumpIp(struct iphdr *ip) {
     /* Display header*/
+    char src[INET_ADDRSTRLEN];
+    char dst[INET_ADDRSTRLEN];
+    ft_memset(src, 0, sizeof(src));
+    ft_memset(dst, 0, sizeof(dst));
+    const char * saddr = inet_ntop(AF_INET, &ip->saddr, src, INET_ADDRSTRLEN);
+    const char * daddr = inet_ntop(AF_INET, &ip->daddr, dst, INET_ADDRSTRLEN);
     printf("\nIP Hdr Dump:\n %u%u%hhu%hhu %04x",
         ip->version, ip->ihl, ip->tos & 0xFC, ip->tos & 0x3, ip->tot_len);
     printf(" %04x %04x %02hhu%02hhu", ip->id, ip->frag_off, ip->ttl, ip->protocol);
@@ -233,22 +239,24 @@ void    headerDump(struct iphdr *ip, struct icmphdr *icmp) {
     printf("%2u %2u  %hhu%hhu %04x",
         ip->version, ip->ihl, ip->tos & 0xFC,
         ip->tos & 0x3, convertEndianess(ip->tot_len));
-    printf(" %hx %3hhu", ip->id, ip->frag_off & 0xE000);
-    
-    printf("\n");
-    printBits2(ip->frag_off);
-    printf("\n");
-    printBits2(ip->frag_off & 0xE000);
+    uint8_t flag = ip->frag_off >> 13;
+    printf(" %hx %3hhu %04hx  %02hhu",
+        ip->id, flag, ip->frag_off & 0x1FFF, ip->ttl);
+    printf("  %02hhu %04hx", ip->protocol, ip->check);
+    printf(" %s  %s\n", saddr, daddr);
+}
+void    headerDumpData(struct icmphdr *icmp, uint16_t size) {
+    printf("ICMP: type %hhu, code %hhu, size %hu, id 0x%04hx, seq 0x%04hx",
+        icmp->type, icmp->code, size, icmp->un.echo.id, icmp->un.echo.sequence);
 }
 
 /*
     convertEndianess == need to convert from
     big endian to little endian (ping is from sendto)
 */
-unsigned char isReplyOk(struct iphdr *ip, struct iphdr *ipOriginal,
+unsigned char isReplyOk(struct iphdr *ip, struct iphdr *ipOriginal, struct icmphdr *icmpOriginal,
     struct sockaddr_in *translate, char *buff, ssize_t recv) {
     //struct iphdr    ipOriginal;
-    struct icmphdr  icmpOriginal;
     struct icmphdr  *icmp;
     struct s_ping_memory *ping;
 
@@ -266,22 +274,21 @@ unsigned char isReplyOk(struct iphdr *ip, struct iphdr *ipOriginal,
     recv -= sizeof(struct icmphdr);
     if (recv < 0)
         return (FALSE);
-    parseIcmp(&icmpOriginal, buff);
-    ping = &pingMemory[icmpOriginal.un.echo.sequence];
+    ping = &pingMemory[icmpOriginal->un.echo.sequence];
     if (!ping)
         return (FALSE);
     icmp = &ping->icmp;
     /*printf("type: %u %u\ncode: %u %u\nchk: %u %u\nid: %u %u\nseq: %u %u",
-        icmp->type, icmpOriginal.type,
-        icmp->code, icmpOriginal.code,
-        convertEndianess(icmp->checksum), icmpOriginal.checksum,
-        convertEndianess(icmp->un.echo.id), icmpOriginal.un.echo.id,
-        convertEndianess(icmp->un.echo.sequence), icmpOriginal.un.echo.sequence);
+        icmp->type, icmpOriginal->type,
+        icmp->code, icmpOriginal->code,
+        convertEndianess(icmp->checksum), icmpOriginal->checksum,
+        convertEndianess(icmp->un.echo.id), icmpOriginal->un.echo.id,
+        convertEndianess(icmp->un.echo.sequence), icmpOriginal->un.echo.sequence);
     */
-    return (icmp->type == icmpOriginal.type && icmp->code == icmpOriginal.code
-        && convertEndianess(icmp->checksum) == icmpOriginal.checksum
-        && convertEndianess(icmp->un.echo.id) == icmpOriginal.un.echo.id
-        && convertEndianess(icmp->un.echo.sequence) == icmpOriginal.un.echo.sequence);
+    return (icmp->type == icmpOriginal->type && icmp->code == icmpOriginal->code
+        && convertEndianess(icmp->checksum) == icmpOriginal->checksum
+        && convertEndianess(icmp->un.echo.id) == icmpOriginal->un.echo.id
+        && convertEndianess(icmp->un.echo.sequence) == icmpOriginal->un.echo.sequence);
 }
 
 /*
@@ -297,6 +304,7 @@ void getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
     if (!icmp)
         return ;
     struct iphdr ipOriginal;
+    struct icmphdr icmpOriginal;
     char str[16];
     char str2[16];
 
@@ -304,7 +312,8 @@ void getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
         buff += sizeof(struct icmphdr);
     parseIp(&ipOriginal, buff);
     buff += sizeof(struct iphdr);
-    if (isReplyOk(ip, &ipOriginal, translate, buff, recv) == FALSE){
+    parseIcmp(&icmpOriginal, buff);
+    if (isReplyOk(ip, &ipOriginal, &icmpOriginal, translate, buff, recv) == FALSE){
         return ;
     }
     ft_memset(str, 0, 16);
@@ -344,6 +353,7 @@ void getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
     if (functionCall)
            functionCall(icmp->code);
     if (t_flags.v == TRUE) {
-        headerDump(&ipOriginal, icmp);
+        headerDumpIp(&ipOriginal);
+        headerDumpData(&icmpOriginal, ipOriginal.tot_len - sizeof(struct iphdr));
     }
 }
