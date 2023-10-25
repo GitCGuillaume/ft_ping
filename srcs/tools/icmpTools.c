@@ -11,36 +11,25 @@ void    exitInet(void) {
 
 /* Get part from addr using mask bits */
 void    bitMask(uint16_t *addr, uint16_t mask, char *buff, int nb, int jump) {
-    *addr = (*addr & ~mask) | ((*(buff + jump) << nb) & mask);
+    if (addr && buff)
+        *addr = (*addr & ~mask) | ((*(buff + jump) << nb) & mask);
 }
 
 /* Get part from addr using mask bits */
 void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump) {
-    *addr = (*addr & ~mask) | ((*(buff + jump) << nb) & mask);
-}
-
-void printBits2(size_t num)
-{
-   for(size_t bit=0;bit< sizeof(size_t) * 8; bit++)
-   {
-      printf("%li ", num & 0x01);
-      num = num >> 1;
-   }
-   printf("\n");
+    if (addr && buff)
+        *addr = (*addr & ~mask) | ((*(buff + jump) << nb) & mask);
 }
 
 /* Parse using mask */
 void    parseIp(struct iphdr *ip, char *buff) {
     if (!ip || !buff)
         exitInet();
-    //printBits2(*buff);
     ip->ihl = *buff & 0xF;
     *buff = *buff >> 4;//take half
     ip->version = *buff;
     ++buff;
-    //printBits2(*buff);
     ip->tos = *buff;
-    //printBits2(ip->tos);
     ++buff;
     bitMask(&ip->tot_len, 0xFF00, buff, 8, 0);
     bitMask(&ip->tot_len, 0xFF, buff, 0, 1);
@@ -64,10 +53,6 @@ void    parseIp(struct iphdr *ip, char *buff) {
     bigBitMask(&ip->saddr, 0xFF0000, buff, 16, 2);
     bigBitMask(&ip->saddr, 0xFF000000, buff, 24, 3);
     buff += 4;
-    /*bigBitMask(&ip->daddr, 0xFF, buff, 24, 0);
-    bigBitMask(&ip->daddr, 0xFF00, buff, 16, 1);
-    bigBitMask(&ip->daddr, 0xFF0000, buff, 8, 2);
-    bigBitMask(&ip->daddr, 0xFF000000, buff, 0, 3);*/
     bigBitMask(&ip->daddr, 0xFF, buff, 0, 0);
     bigBitMask(&ip->daddr, 0xFF00, buff, 8, 1);
     bigBitMask(&ip->daddr, 0xFF0000, buff, 16, 2);
@@ -155,6 +140,8 @@ void    destUnreach(uint8_t code) {
 
 /* Deprecated */
 void    sourceQuench(uint8_t code) {
+    if (code != 0)
+        return ;
     printf("%s", "Source Quench");
 }
 
@@ -192,7 +179,7 @@ void    paramProb(uint8_t code) {
     else if (code == 2)
         printf("%s", "Bad length");
 }
-
+/*
 void    timeStamp(uint8_t code) {
 
 }
@@ -215,12 +202,14 @@ void    address(uint8_t code) {
 
 void    addressReply(uint8_t code) {
     
-}
+}*/
 
 /*
     https://datatracker.ietf.org/doc/html/rfc2474#section-3
 */
 void    headerDumpIp(struct iphdr *ip) {
+    if (!ip)
+        return ;
     /* Display header*/
     char src[INET_ADDRSTRLEN];
     char dst[INET_ADDRSTRLEN];
@@ -246,6 +235,8 @@ void    headerDumpIp(struct iphdr *ip) {
     printf(" %s  %s\n", saddr, daddr);
 }
 void    headerDumpData(struct icmphdr *icmp, uint16_t size) {
+    if (!icmp)
+        return ;
     printf("ICMP: type %hhu, code %hhu, size %hu, id 0x%04hx, seq 0x%04hx",
         icmp->type, icmp->code, size, icmp->un.echo.id, icmp->un.echo.sequence);
 }
@@ -254,18 +245,18 @@ void    headerDumpData(struct icmphdr *icmp, uint16_t size) {
     convertEndianess == need to convert from
     big endian to little endian (ping is from sendto)
 */
-unsigned char isReplyOk(struct iphdr *ip, struct iphdr *ipOriginal, struct icmphdr *icmpOriginal,
-    struct sockaddr_in *translate, char *buff, ssize_t recv) {
-    //struct iphdr    ipOriginal;
+unsigned char isReplyOk(struct iphdr *ipOriginal, struct icmphdr *icmpOriginal,
+    struct sockaddr_in *translate, ssize_t recv) {
     struct icmphdr  *icmp;
     struct s_ping_memory *ping;
 
+    if (!ipOriginal)
+        return (FALSE);
     //remove icmp size, now we are in the original payload/ip + datagrame
     recv -= sizeof(struct icmphdr);
     recv -= sizeof(struct iphdr);
     if (recv < 8)
         return (FALSE);
-    //printf("recv: %ld\n", recv);
     if (ipOriginal->protocol != ICMP)
         return (FALSE);
     if (translate->sin_addr.s_addr != ipOriginal->daddr) {
@@ -278,13 +269,6 @@ unsigned char isReplyOk(struct iphdr *ip, struct iphdr *ipOriginal, struct icmph
     if (!ping)
         return (FALSE);
     icmp = &ping->icmp;
-    /*printf("type: %u %u\ncode: %u %u\nchk: %u %u\nid: %u %u\nseq: %u %u",
-        icmp->type, icmpOriginal->type,
-        icmp->code, icmpOriginal->code,
-        convertEndianess(icmp->checksum), icmpOriginal->checksum,
-        convertEndianess(icmp->un.echo.id), icmpOriginal->un.echo.id,
-        convertEndianess(icmp->un.echo.sequence), icmpOriginal->un.echo.sequence);
-    */
     return (icmp->type == icmpOriginal->type && icmp->code == icmpOriginal->code
         && convertEndianess(icmp->checksum) == icmpOriginal->checksum
         && convertEndianess(icmp->un.echo.id) == icmpOriginal->un.echo.id
@@ -298,29 +282,22 @@ unsigned char isReplyOk(struct iphdr *ip, struct iphdr *ipOriginal, struct icmph
     If an ICMP message of unknown type is received, it MUST be
          silently discarded.
 */
-void getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
+void getIcmpCode(struct icmphdr *icmp,
     struct sockaddr_in *translate, char *buff, ssize_t recv) {
     //list of icmp macro
-    if (!icmp)
+    if (!icmp || !translate || !buff)
         return ;
     struct iphdr ipOriginal;
     struct icmphdr icmpOriginal;
-    char str[16];
-    char str2[16];
 
     if (icmp->type != 12)
         buff += sizeof(struct icmphdr);
     parseIp(&ipOriginal, buff);
     buff += sizeof(struct iphdr);
     parseIcmp(&icmpOriginal, buff);
-    if (isReplyOk(ip, &ipOriginal, &icmpOriginal, translate, buff, recv) == FALSE){
+    if (isReplyOk(&ipOriginal, &icmpOriginal, translate, recv) == FALSE){
         return ;
     }
-    ft_memset(str, 0, 16);
-    ft_memset(str2, 0, 16);
-    //struct iphdr  *originalIp = (struct iphdr *)buff;
-    //printf("zzzz%s %s\n", inet_ntop(AF_INET, &originalIp->saddr, str, INET_ADDRSTRLEN),
-    //    inet_ntop(AF_INET, &originalIp->daddr, str2, INET_ADDRSTRLEN));
     unsigned int types[19] = {
         NONE, NONE, NONE,
         ICMP_DEST_UNREACH, ICMP_SOURCE_QUENCH,
@@ -332,17 +309,15 @@ void getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
     };
     //list of function to call from macro number
     void    *functionArray[19] = {
-        (void*)0, (void*)0, (void*)0,
+        NULL, NULL, NULL,
         &destUnreach, &sourceQuench, &redirect,
-        (void*)0, (void*)0, (void*)0, (void*)0, (void*)0,
-        &timeExceed, &paramProb, &timeStamp, &timeStampReply,
-        &infoRequest, &infoReply, &address, &addressReply
+        NULL, NULL, NULL, NULL, NULL,
+        &timeExceed, &paramProb, NULL/*&timeStamp*/, NULL/*&timeStampReply*/,
+        NULL/*&infoRequest*/, NULL/*&infoReply*/, NULL/*&address*/, NULL/*&addressReply*/
     };
     void    (*functionCall)(uint8_t) = NULL;
     unsigned int i;
 
-   // printf("ty: %u\n", icmp->type);
-   // printf("code: %u\n", icmp->code);
     for (i = 0; i < 20; ++i) {
         if (icmp->type == types[i]
             && types[i] != NONE) {
@@ -354,6 +329,7 @@ void getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
            functionCall(icmp->code);
     if (t_flags.v == TRUE) {
         headerDumpIp(&ipOriginal);
-        headerDumpData(&icmpOriginal, ipOriginal.tot_len - sizeof(struct iphdr));
+        headerDumpData(&icmpOriginal,
+            ipOriginal.tot_len - sizeof(struct iphdr));
     }
 }
