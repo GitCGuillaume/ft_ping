@@ -39,6 +39,25 @@ void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
     ping->dup = TRUE;
 }
 
+void    displayTimeExceed(struct iphdr *ip, const char *ntop, ssize_t recv) {
+    struct sockaddr_in  fqdn;
+    char host[FQDN_MAX];
+    char serv[FQDN_MAX];
+
+    ft_memset(&fqdn, 0, sizeof(fqdn));
+    ft_memset(host, 0, FQDN_MAX);
+    ft_memset(serv, 0, FQDN_MAX);
+    fqdn.sin_family = AF_INET;
+    fqdn.sin_addr.s_addr = ip->saddr;
+    const int getNameResult
+        = getnameinfo((const struct sockaddr *)&fqdn, sizeof(fqdn),
+            host, sizeof(host), serv, sizeof(serv), NI_NAMEREQD);
+    if (getNameResult != 0)
+        printf("%lu bytes from %s: ", recv, ntop);
+    else
+        printf("%lu bytes from %s (%s): ", recv, host, ntop);
+}
+
 /*
     Start of reading ping response from targetted client
     Source : https://en.wikipedia.org/wiki/Checksum
@@ -83,10 +102,9 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
     const char *ntop = inet_ntop(AF_INET, &ip.saddr, dest, INET_ADDRSTRLEN);
     if (!ntop)
         exitInet();
-    if (resultChecksum != 0 && icmp.type != 3)
-            printf("checksum mismatch from %s\n", ntop);
     if (icmp.type != 0) {// if (icmp.type == 0) {
-        struct sockaddr_in  fqdn;
+        displayTimeExceed(&ip, ntop, recv);
+        /*struct sockaddr_in  fqdn;
         char host[FQDN_MAX];
         char serv[FQDN_MAX];
 
@@ -101,7 +119,7 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
         if (getNameResult != 0)
             printf("%lu bytes from %s: ", recv, ntop);
         else
-            printf("%lu bytes from %s (%s): ", recv, host, ntop);
+            printf("%lu bytes from %s (%s): ", recv, host, ntop);*/
     } else {
         printf("%lu bytes from %s: ", recv, ntop);
     }
@@ -110,6 +128,8 @@ void    icmpResponse(struct msghdr *msg, ssize_t recv,
 
         if (!ping)
             return ;
+        if (resultChecksum != 0)
+            printf("checksum mismatch from %s\n", ntop);
         buff += sizeof(struct icmphdr);
         tvB = (struct timeval *)buff;
         buff += 16;
@@ -155,6 +175,32 @@ void    icmpRequest() {
     icmpResponse(&msgResponse, result - sizeof(struct iphdr), &tvA);
 }
 
+static void    initPing(struct s_ping_memory *ping, const char *buff, const char *str) {
+    if (!ping || !buff)
+        exitInet();
+    ft_memset(&str, 0, INET_ADDRSTRLEN);
+    ft_memset(&buff, 0, ECHO_REQUEST_SIZE);
+    ping->icmp.type = ICMP_ECHO;
+    ping->icmp.code = 0;
+    ping->icmp.un.echo.id = htons(getpid());
+    ping->icmp.un.echo.sequence = htons(roundTripGlobal.packetSend);
+}
+
+void    fillBuffer(char *buff, struct s_ping_memory *ping,
+    const struct timeval *tvB) {
+    uint8_t j = sizeof(ping->icmp) + sizeof(*tvB);
+    const uint8_t max = j + 40;
+    char value = 0;
+
+    ft_memcpy(buff, &ping->icmp, sizeof(ping->icmp));
+    ft_memcpy(buff + sizeof(pingMemory->icmp), tvB, sizeof(*tvB));
+    for (; j < max; ++j)
+        buff[j] = value++;
+    ping->icmp.checksum
+        = checksum((uint16_t *)buff, sizeof(ping->icmp) + sizeof(*tvB) + 40);
+    ft_memcpy(buff, &ping->icmp, sizeof(ping->icmp));
+}
+
 /* send ping using signal alarm */
 void    sigHandlerAlrm(int sigNum) {
     int cpyI = roundTripGlobal.packetSend;
@@ -168,25 +214,11 @@ void    sigHandlerAlrm(int sigNum) {
     int result = -1;
     
     //init part
-    ft_memset(buff, 0, ECHO_REQUEST_SIZE);
-    pingMemory[cpyI].icmp.type = ICMP_ECHO;
-    pingMemory[cpyI].icmp.code = 0;
-    pingMemory[cpyI].icmp.un.echo.id = htons(getpid());
-    pingMemory[cpyI].icmp.un.echo.sequence = htons(roundTripGlobal.packetSend);
-    pingMemory[cpyI].icmp.checksum = 0;
+    initPing(&pingMemory[cpyI], buff, 0);
     if (gettimeofday(&tvB, 0) < 0) {
         exitInet();
     }
-    ft_memcpy(buff, &pingMemory[cpyI].icmp, sizeof(pingMemory[cpyI].icmp));
-    ft_memcpy(buff + sizeof(pingMemory[cpyI].icmp), &tvB, sizeof(tvB));
-    uint8_t j = sizeof(pingMemory[cpyI].icmp) + sizeof(tvB);
-    const uint8_t max = j + 40;
-    char value = 0;
-    for (; j < max; ++j)
-        buff[j] = value++;
-    pingMemory[cpyI].icmp.checksum
-        = checksum((uint16_t *)buff, sizeof(pingMemory[cpyI].icmp) + sizeof(tvB) + 40);
-    ft_memcpy(buff, &pingMemory[cpyI].icmp, sizeof(pingMemory[cpyI].icmp));
+    fillBuffer(buff, &pingMemory[cpyI], &tvB);
     roundTripGlobal.packetSend++;
     result = sendto(fdSocket, buff,
         ECHO_REQUEST_SIZE, 0,
@@ -223,13 +255,7 @@ void    runIcmp() {
     if (signal(SIGALRM, sigHandlerAlrm) == SIG_ERR)
         exitInet();
     //init vars part
-    ft_memset(str, 0, INET_ADDRSTRLEN);
-    ft_memset(buff, 0, ECHO_REQUEST_SIZE);
-    pingMemory[0].icmp.type = ICMP_ECHO;
-    pingMemory[0].icmp.code = 0;
-    pingMemory[0].icmp.un.echo.id = htons(getpid());
-    pingMemory[0].icmp.un.echo.sequence = htons(roundTripGlobal.packetSend);
-    pingMemory[0].icmp.checksum = 0;
+    initPing(&pingMemory[0], buff, str);
     //get time before substract
     const char *inetResult = inet_ntop(AF_INET, &translate->sin_addr, str, INET_ADDRSTRLEN);
     if (!inetResult) {
@@ -247,16 +273,8 @@ void    runIcmp() {
     if (gettimeofday(&tvB, 0) < 0) {
         exitInet();
     }
-    ft_memcpy(buff, &pingMemory[0].icmp, sizeof(pingMemory[0].icmp));
-    ft_memcpy(buff + sizeof(pingMemory[0].icmp), &tvB, sizeof(tvB));
-    uint8_t j = sizeof(pingMemory[0].icmp) + sizeof(tvB);
-    const uint8_t max = j + 40;
-    char value = 0;
-    for (; j < max; ++j)
-        buff[j] = value++;
-    pingMemory[0].icmp.checksum
-        = checksum((uint16_t *)buff, sizeof(pingMemory[0].icmp) + sizeof(tvB) + 40);
-    ft_memcpy(buff, &pingMemory[0].icmp, sizeof(pingMemory[0].icmp));
+    fillBuffer(buff, &pingMemory[0], &tvB);
+    //inc nb packets and send
     roundTripGlobal.packetSend++;
     result = sendto(fdSocket, buff,
         ECHO_REQUEST_SIZE, 0,

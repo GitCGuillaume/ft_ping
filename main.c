@@ -81,7 +81,7 @@ static int openSocket(/*struct addrinfo *listAddr*/) {
     if (!listAddr)
         exit(EXIT_FAILURE);
     struct addrinfo *mem = listAddr;
-    int    ttl = 2;
+    int    ttl = 1;
     int     fd = -1;
 
     if (ttl == 0) {
@@ -121,7 +121,6 @@ static void    searchFlags(char *argv[]) {
     char hasMinus;
 
     ft_memset(list, -1, sizeof(list));
-    //list['-'] = 1;
     list['v'] = 1;
     list['?'] = 1;
     for (int i = 1; argv[i] != NULL; ++i) {
@@ -171,14 +170,6 @@ static struct addrinfo *getIp(char *argv[], int *i) {
             break ;
         }
     }
-    /*char str[1000];
-    ft_memset(str, 0, 1001);
-    for (struct addrinfo *i = list; i != NULL; i = i->ai_next) {
-        translate = (struct sockaddr_in *)i->ai_addr;
-        printf("%x\n%s\n", translate->sin_addr.s_addr,
-            inet_ntop(AF_INET, &translate->sin_addr, str, INET_ADDRSTRLEN));
-        ft_memset(str, 0, 1001);
-    }*/
     if (t_flags.interrogation == FALSE && !list) {
         dprintf(2, "%s",
             "ping: missing host operand\nTry 'ping -?' for more information.\n");

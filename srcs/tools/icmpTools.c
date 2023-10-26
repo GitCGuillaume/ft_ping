@@ -290,6 +290,8 @@ void getIcmpCode(struct icmphdr *icmp,
     struct iphdr ipOriginal;
     struct icmphdr icmpOriginal;
 
+    ft_memset(&ipOriginal, 0, sizeof(struct iphdr));
+    ft_memset(&icmpOriginal, 0, sizeof(struct icmphdr));
     if (icmp->type != 12)
         buff += sizeof(struct icmphdr);
     parseIp(&ipOriginal, buff);
