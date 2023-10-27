@@ -282,9 +282,8 @@ unsigned char isReplyOk(struct iphdr *ipOriginal, struct icmphdr *icmpOriginal,
     If an ICMP message of unknown type is received, it MUST be
          silently discarded.
 */
-void getIcmpCode(struct icmphdr *icmp,
-    struct sockaddr_in *translate, char *buff, ssize_t recv) {
-    //list of icmp macro
+void getIcmpCode(struct icmphdr *icmp, char *buff, ssize_t recv) {
+    struct sockaddr_in *translate = (struct sockaddr_in *)listAddr->ai_addr;
     if (!icmp || !translate || !buff)
         return ;
     struct iphdr ipOriginal;
