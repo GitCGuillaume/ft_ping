@@ -20,6 +20,24 @@ void    displayTimeExceed(struct iphdr *ip, const char *ntop, ssize_t recv) {
         printf("%lu bytes from %s (%s): ", recv, host, ntop);
 }
 
+/*to calculate ctrl+c values*/
+void    countRoundTrip(double *milliSeconds, struct timeval *tvA,
+    struct timeval *tvB) {
+    ++roundTripGlobal.number;
+    if (tvB->tv_sec && tvB->tv_usec) {
+        time_t seconds = tvA->tv_sec - tvB->tv_sec;
+        suseconds_t microSeconds = tvA->tv_usec - tvB->tv_usec;
+        *milliSeconds = (seconds * 1000.000000) + (microSeconds / 1000.000000);
+
+        roundTripGlobal.sum += *milliSeconds;
+        roundTripGlobal.squareSum += (*milliSeconds * *milliSeconds);
+        if (*milliSeconds < roundTripGlobal.rtt[0] || roundTripGlobal.rtt[0] == 0)
+            roundTripGlobal.rtt[0] = *milliSeconds;
+        if (roundTripGlobal.rtt[1] < *milliSeconds)
+            roundTripGlobal.rtt[1] = *milliSeconds;
+    }
+}
+
 /* Display response from target using IPv4 and Icmp structure */
 void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
     struct s_ping_memory *ping, struct timeval *tvA,
@@ -33,20 +51,7 @@ void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
         return ;
     double milliSeconds = 0.000000;
     uint16_t icmpSequence = icmp->un.echo.sequence;// & 0x00FF;
-
-    ++roundTripGlobal.number;
-    if (tvB->tv_sec && tvB->tv_usec) {
-        time_t seconds = tvA->tv_sec - tvB->tv_sec;
-        suseconds_t microSeconds = tvA->tv_usec - tvB->tv_usec;
-        milliSeconds = (seconds * 1000.000000) + (microSeconds / 1000.000000);
-
-        roundTripGlobal.sum += milliSeconds;
-        roundTripGlobal.squareSum += (milliSeconds * milliSeconds);
-        if (milliSeconds < roundTripGlobal.rtt[0] || roundTripGlobal.rtt[0] == 0)
-            roundTripGlobal.rtt[0] = milliSeconds;
-        if (roundTripGlobal.rtt[1] < milliSeconds)
-            roundTripGlobal.rtt[1] = milliSeconds;
-    }
+    countRoundTrip(&milliSeconds, tvA, tvB);
     printf("icmp_seq=%u ttl=%u",
         icmpSequence, ip->ttl);
     if (tvB->tv_sec && tvB->tv_usec)
