@@ -77,11 +77,11 @@ static void    sigHandlerInt(int sigNum) {
     Options for use with `getsockopt' and `setsockopt' at the IP level.
     IP_TTL...
  */
-static int openSocket(/*struct addrinfo *listAddr*/) {
+static int openSocket() {
     if (!listAddr)
         exit(EXIT_FAILURE);
     struct addrinfo *mem = listAddr;
-    int    ttl = 2;
+    int    ttl = 60;
     int     fd = -1;
 
     if (ttl == 0) {
@@ -181,7 +181,6 @@ static struct addrinfo *getIp(char *argv[], int *i) {
 }
 
 static void    pingStart(int argc, char *argv[]) {
-    
     int     i = 1;
 
     //init part

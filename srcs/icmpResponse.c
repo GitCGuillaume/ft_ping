@@ -50,7 +50,7 @@ static void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
     if (translate->sin_addr.s_addr != ip->saddr)
         return ;
     double milliSeconds = 0.000000;
-    uint16_t icmpSequence = icmp->un.echo.sequence;// & 0x00FF;
+    uint16_t icmpSequence = icmp->un.echo.sequence;
     countRoundTrip(&milliSeconds, tvA, tvB);
     printf("icmp_seq=%u ttl=%u",
         icmpSequence, ip->ttl);
@@ -120,7 +120,7 @@ void    icmpInitResponse(struct msghdr *msg, ssize_t recv,
     struct icmphdr  icmp;
     char *buff = iov->iov_base;
     struct s_ping_memory *ping = 0;
-    
+
     ft_memset(&ip, 0, sizeof(ip));
     ft_memset(&icmp, 0, sizeof(icmp));
     /* Get IPv4 from buffer  */
