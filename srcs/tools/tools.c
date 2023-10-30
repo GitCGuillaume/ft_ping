@@ -1,5 +1,47 @@
 #include "tools.h"
 
+void    exitInet(void) {
+    if  (listAddr) {
+        freeaddrinfo(listAddr);
+    }
+    if (fdSocket >= 0)
+        close(fdSocket);
+    exit(1);
+}
+
+/*
+    max 16bits (65535 bits) to return
+*/
+uint16_t    checksum(uint16_t *hdr, size_t len) {
+    size_t  sum = 0;
+    uint8_t  minus = sizeof(uint16_t);
+
+    //1 < because unsigned on odd, better not overflow
+    while (1 < len) {
+        sum += *hdr++;
+        len -= minus;
+    }
+    if (len != 0)
+        sum += *hdr;
+    while (sum >> 16) {
+        sum = (sum & 0x0000FFFF) + (sum >> 16);
+    }
+    return (~sum);
+}
+
+/*  Convert big endian to little endian
+    0 0 1 1 1 1 1 1 >> 8 && << 8 1 0 1 1 0 0 0 1
+    0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1
+    OR
+    1 0 1 1 0 0 0 1 0 0 0 0 0 0 0 0
+    =
+    0 1 0 0 1 0 0 1 0 0 1 0 0 0 0 0
+*/
+
+uint16_t    convertEndianess(uint16_t echoVal) {
+    return (echoVal >> 8 | echoVal << 8);
+}
+
 static void    AskIntt(char *ask) {
     ft_memcpy(ask, "Usage: ping [OPTION...] HOST ...\n", 33);
     ask += 33;

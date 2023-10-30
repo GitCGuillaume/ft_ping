@@ -47,6 +47,11 @@ struct s_round_trip {
 };
 
 void    exitInet(void);
+void    bitMask(uint16_t *addr, uint16_t mask, char *buff, int nb, int jump);
+void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump);
+uint16_t    convertEndianess(uint16_t echoVal);
+uint16_t    checksum(uint16_t *hdr, size_t len);
+uint16_t    convertEndianess(uint16_t echoVal);
 
 extern int fdSocket;
 extern struct s_flags t_flags;

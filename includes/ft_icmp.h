@@ -12,13 +12,12 @@
 # define ECHO_REPLY_SIZE 84 /* which translates into 64 ICMP data bytes, taking the 8 bytes of ICMP header data into account.*/
 #endif
 
-uint16_t    checksum(uint16_t *hdr, size_t len);
-void    bitMask(uint16_t *addr, uint16_t mask, char *buff, int nb, int jump);
-void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump);
-uint16_t    convertEndianess(uint16_t echoVal);
 void    runIcmp();
 void getIcmpCode(struct icmphdr *icmp, char *buff, ssize_t recv);
 void    parseIp(struct iphdr *ip, char *buff);
 void    parseIcmp(struct icmphdr  *icmp, char *buff);
+//icmpReponse.c
+void    icmpInitResponse(struct msghdr *msg, ssize_t recv,
+    struct timeval *tvA);
 
 #endif

@@ -12,7 +12,7 @@ int fdSocket;//must be also closed on CTRL+C etc
     Heron's method
     https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Heron's_method
 */
-double   ftSqrt(double num) {
+static double   ftSqrt(double num) {
     double x = num;
     double old = 0;
 
