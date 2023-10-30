@@ -17,7 +17,7 @@ static double   ftSqrt(double num) {
     double old = 0;
 
     if (num < 0 || num == 0)
-        return (0.0d);
+        return (0.0f);
     while (x != old){
         old = x;
         x = (x + num / x) / 2;
@@ -31,7 +31,7 @@ static double   ftSqrt(double num) {
 */
 static void    sigHandlerInt(int sigNum) {
     double  average;
-    double  stdDev = 0.0d;
+    double  stdDev = 0.0f;
 
     if (sigNum != SIGINT)
         return ;
