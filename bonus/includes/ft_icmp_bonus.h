@@ -1,9 +1,9 @@
-#ifndef FT_ICMP_H
-# define FT_ICMP_H
+#ifndef FT_ICMP_BONUS_H
+# define FT_ICMP_BONUS_H
 
 #include "netinet/ip_icmp.h"
 #include <sys/time.h>
-#include "tools.h"
+#include "tools_bonus.h"
 
 #ifndef ICMP_ECHO
 # define ICMP_ECHO 8

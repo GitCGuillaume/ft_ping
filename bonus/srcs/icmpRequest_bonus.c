@@ -1,5 +1,5 @@
-#include "ft_icmp.h"
-#include "tools.h"
+#include "ft_icmp_bonus.h"
+#include "tools_bonus.h"
 
 /* Get request response */
 static void    icmpGetResponse() {

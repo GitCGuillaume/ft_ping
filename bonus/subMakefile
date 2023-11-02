@@ -1,0 +1,69 @@
+TOOLS_BONUS = ./bonus/srcs/tools
+
+SRCS_TOOLS_BONUS = icmpByCodeTools_bonus.c icmpTools_bonus.c tools_bonus.c
+
+SRCS_BONUS = icmpByCode_bonus.c icmpRequest_bonus.c icmpResponse_bonus.c
+
+SRCS_MAIN_BONUS = main_bonus.c
+
+NAME_BONUS = ft_ping_bonus
+
+#NAME_BONUS = ft_ping_bonus
+
+GCC = gcc
+
+FLAGS = -Wall -Wextra -Werror
+
+#INCLUDES = -Ibonus/includes -Isrcs/libft
+
+INCLUDES_BONUS = -Ibonus/includes -Isrcs/libft
+
+O_DIR_BONUS = objs_bonus
+
+OBJS_T_BONUS =	$(addprefix $(O_DIR_BONUS)/, $(SRCS_TOOLS_BONUS:.c=.o))
+
+OBJS_SRCS_BONUS = $(addprefix $(O_DIR_BONUS)/, $(SRCS_BONUS:.c=.o))
+
+OBJS_MAIN_BONUS = $(addprefix $(O_DIR_BONUS)/, $(SRCS_MAIN_BONUS:.c=.o))
+
+## BONUS PART ##
+
+#PATH_BONUS = ./bonus
+
+#O_DIR_BONUS = objs_bonus
+
+#SRCS_MAIN_BONUS = main_bonus.c
+
+#OBJS_MAIN_BONUS = $(addprefix $(O_DIR_BONUS)/, $(SRCS_MAIN_BONUS:.c=.o))
+
+#$(O_DIR_BONUS)/%.o: $(PATH_BONUS)/%.c
+#		@mkdir -p $(O_DIR_BONUS)
+#		$(GCC) $(FLAGS) $(INCLUDES_BONUS) -c $< -o $@
+
+## END BONUS PART ##
+
+$(O_DIR_BONUS)/%.o: $(TOOLS_BONUS)/%.c
+		@mkdir -p $(O_DIR_BONUS)
+		$(GCC) $(FLAGS) $(INCLUDES_BONUS) -c $< -o $@
+
+$(O_DIR_BONUS)/%.o: ./bonus/srcs/%.c
+		@mkdir -p $(O_DIR_BONUS)
+		$(GCC) $(FLAGS) $(INCLUDES_BONUS) -c $< -o $@
+
+$(O_DIR_BONUS)/%.o: ./bonus/%.c
+		@mkdir -p $(O_DIR_BONUS)
+		$(GCC) $(FLAGS) $(INCLUDES_BONUS) -c $< -o $@
+
+#$(NAME):	$(OBJS_T) $(OBJS_SRCS) $(OBJS_MAIN)
+#	make all -C ./srcs/libft
+#	$(GCC) $(FLAGS) $(INCLUDES) -o $(NAME) \
+#		$(OBJS_T) $(OBJS_SRCS) $(OBJS_MAIN) \
+#		./srcs/libft/libft.a
+
+bonus:	$(OBJS_T_BONUS) $(OBJS_SRCS_BONUS) $(OBJS_MAIN_BONUS)
+	make all -C ./srcs/libft
+	$(GCC) $(FLAGS) $(INCLUDES_BONUS) -o $(NAME_BONUS) \
+		$(OBJS_T_BONUS) $(OBJS_SRCS_BONUS) $(OBJS_MAIN_BONUS) \
+		./srcs/libft/libft.a
+
+.PHONY: bonus
