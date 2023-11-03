@@ -1,6 +1,8 @@
 #include "ft_icmp_bonus.h"
 #include "tools_bonus.h"
 
+struct timeval gTimer;
+
 /* Get request response */
 static void    icmpGetResponse() {
     char buff2[ECHO_REPLY_SIZE];
@@ -66,7 +68,7 @@ static void    sigHandlerAlrm(int sigNum) {
     struct timeval tvB;
     char buff[ECHO_REQUEST_SIZE];
     int result = -1;
-    
+
     //init part
     ft_memset(buff, 0, ECHO_REQUEST_SIZE);
     initPing(&pingMemory[cpyI]);
@@ -85,6 +87,8 @@ static void    sigHandlerAlrm(int sigNum) {
             close(fdSocket);
         exit(1);
     }
+    if (t_flags.w)
+        timerFlagExit(&tvB, gTimer);
     //Call another ping
     alarm(1);
 }
@@ -132,6 +136,11 @@ void    runIcmp() {
     //display ping header
     displayPingHeader();
     //get timestamp for ping payload
+    if (t_flags.w) {
+        if (gettimeofday(&gTimer, 0) < 0) {
+            exitInet();
+        }
+    }
     if (gettimeofday(&tvB, 0) < 0) {
         exitInet();
     }

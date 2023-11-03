@@ -24,6 +24,7 @@
 struct s_flags {
     char v;
     char interrogation;
+    int w;
     ssize_t ttl;
 };
 
@@ -47,7 +48,10 @@ struct s_round_trip {
     uint32_t    packetSend;
 };
 
+void    sigHandlerInt(int sigNum);
 void    exitInet(void);
+void    exitTimer(int code);
+void    timerFlagExit(struct timeval *tvB, struct timeval cpyGlobal);
 void    bitMask(uint16_t *addr, uint16_t mask, char *buff, int nb, int jump);
 void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump);
 uint16_t    convertEndianess(uint16_t echoVal);

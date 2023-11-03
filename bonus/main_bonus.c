@@ -29,7 +29,7 @@ static double   ftSqrt(double num) {
     https://en.wikipedia.org/wiki/Standard_deviation
     https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
 */
-static void    sigHandlerInt(int sigNum) {
+void    sigHandlerInt(int sigNum) {
     double  average;
     double  stdDev = 0.0f;
 
@@ -85,11 +85,11 @@ static int openSocket() {
     int     fd = -1;
 
     if (ttl == 0) {
-        printf("ping: option value too small: %ld\n", ttl);
+        dprintf(2, "ping: option value too small: %ld\n", ttl);
         freeaddrinfo(listAddr);
         exit(1);
     } else if (ttl < 0 || ttl > 255) {
-        printf("ping: option value too big: %ld\n", ttl);
+        dprintf(2, "ping: option value too big: %ld\n", ttl);
         freeaddrinfo(listAddr);
         exit(1);
     }
@@ -115,73 +115,86 @@ static int openSocket() {
     return (fd);
 }
 
-ssize_t				ft_strToSizet(const char *original, char **str) {
+static ssize_t				ft_strToLong(const char *original, char **str) {
     ssize_t result = 0;
-    ssize_t symbol = 1;
 
-    if (**str == '-') {
-		symbol = -symbol;
-        ++(*str);
+    if (!str[0][6]) {
+        dprintf(2, "ping: option value too small:\n");
+        exit(1);
     }
-	while (**str && **str != ' ') {
-        if (ft_isdigit(**str)) {
-            result = result * 10 + **str - '0';
+    for (int i = 6; str[0][i] != 0; i++) {
+        if (ft_isdigit(str[0][i])) {
+            result = result * 10 + str[0][i] - '0';
         } else {
             dprintf(2,
                 "ping: invalid value (`%s\' near `%s\')\n",
-                original, *str);
+                original, str[0] + i);
+            exit(1);
+        }
+        if (result == 0) {
+            dprintf(2, "ping: option value too small: %s\n", original);
+            exit(1);
+        } else if (result < 0 || result > 255) {
+            dprintf(2, "ping: option value too big: %s\n", original);
+            exit(1);
+        }
+    }
+    return (result);
+}
+
+unsigned int				ft_strToUInt(const char *original, char **str) {
+    unsigned int result = 0;
+
+    if (!str[0][0]) {
+        printf("ping: option value too small:\n");
+        exit(1);
+    }
+    if (str[0][0] == '-') {
+        printf("ping: option value too big: %s\n", original);
+        exit(1);
+    }
+    for (; *str[0] != 0; (*str)++) {
+        if (ft_isdigit(*str[0])) {
+            result = result * 10 + *str[0] - '0';
+        } else {
+            dprintf(2, "ping: invalid value (`%s\' near `%s\')\n",
+                original, str[0]);
             exit(1);
         }
         if (result == 0) {
             printf("ping: option value too small: %s\n", original);
             exit(1);
-        } else if (result < 0 || result > 255) {
+        } else if (result > 2147483647) {
             printf("ping: option value too big: %s\n", original);
             exit(1);
         }
-        ++(*str);
     }
-    return (result * symbol);
+    return (result);
 }
 
 static void    searchFlags(char *argv[]) {
-    //int j = 0;
-    short int    list[126];
-    char hasMinus;
+    int j;
 
-    ft_memset(list, -1, sizeof(list));
-    list['v'] = 1;
-    list['?'] = 1;  
     for (int i = 1; argv[i] != NULL; ++i) {
-        hasMinus = FALSE;
         if (argv[i][0] == '-') {
-            hasMinus = TRUE;
-        }
-        if (hasMinus == TRUE) {
-            argv[i]++;
-            //for (j = 1; argv[i][j] != '\0'; j++) {
-            while (*argv[i]) {
-               // printf("aalo: %c\n", *argv[i]);
-                /*if (list[(short int)*argv[i]] == (short int)-1
-                    && t_flags.interrogation == FALSE) {
-                    dprintf(2, "%s%c%c\n", "ping: invalid option -- \'", *argv[i], '\'');
-                    dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
-                    exit(64);
-                } else*/ if (*argv[i] == 'v')
+            for (j = 1; argv[i][j] != '\0'; j++) {
+                if (argv[i][j] == 'v')
                     t_flags.v = TRUE;
-                else if (*argv[i] == '?') {
+                else if (argv[i][j] == '?') {
                     t_flags.interrogation = TRUE;
                     flagInterrogation();
-                    exit(0);    
-                } else if(*argv[i] == '-'
-                    && *(argv[i] + 1) == 't'
-                    && *(argv[i] + 2) == 't'
-                    && *(argv[i] + 3) == 'l'
-                    && *(argv[i] + 4) == '=') {
-                        argv[i] += 5;
-                        t_flags.ttl = ft_strToSizet(argv[i], &argv[i]);
+                    exit(0);
+                } else if (argv[i][j] == 'w') {
+                    t_flags.w = ft_strToUInt((argv[i + 1]), &argv[i + 1]);
+                    break ;
+                } else if(!ft_strncmp(&argv[i][j], "-ttl", 4)) {
+                    t_flags.ttl = ft_strToLong((argv[i] + 6), &argv[i]);
+                    break ;
+                } else {
+                    dprintf(2, "%s%c%c\n", "ping: invalid option -- \'", argv[i][j], '\'');
+                    dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
+                    exit(64);
                 }
-                argv[i]++;
             }
         }
     }
@@ -194,7 +207,7 @@ static struct addrinfo *getIp(char *argv[], int *i) {
     int result = 0;
 
     for (; argv[*i] != NULL; ++(*i)) {
-        if (argv[*i][0] != '-') {
+        if (*argv[*i] && argv[*i][0] != '-') {
             ft_memset(&client, 0, sizeof(struct addrinfo));
             client.ai_family = AF_INET;
             client.ai_socktype = SOCK_RAW;
@@ -239,6 +252,8 @@ static void    pingStart(int argc, char *argv[]) {
 
 //ping [OPTIONS] host
 int main(int argc, char *argv[]) {
+    char **memArgv = NULL;
+
     ft_memset(pingMemory, 0, sizeof(pingMemory));
     ft_memset(&roundTripGlobal, 0, sizeof(struct s_round_trip));
     t_flags.v = FALSE;
@@ -253,7 +268,11 @@ int main(int argc, char *argv[]) {
         dprintf(2, "%s", "ping: missing host operand\nTry 'ping -?' for more information.\n");
         exit(64);
     }
-    searchFlags(argv);
+    memArgv = argv;
+    //printf("argv: %s mem: %s\n", argv[1], memArgv[1]);
+    searchFlags(memArgv);
+    //*(argv + 1) = memArgv;
+    //printf("argv: %s mem: %s\n", argv[1], memArgv[1]);
     pingStart(argc, argv);
     return (0);
 }

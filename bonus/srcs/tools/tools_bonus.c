@@ -9,6 +9,28 @@ void    exitInet(void) {
     exit(1);
 }
 
+void    exitTimer(int code) {
+    if  (listAddr) {
+        freeaddrinfo(listAddr);
+    }
+    if (fdSocket >= 0)
+        close(fdSocket);
+    exit(code);
+}
+
+void    timerFlagExit(struct timeval *tvB, struct timeval cpyGlobal) {
+    time_t seconds;
+    suseconds_t microSeconds;
+    double milliSeconds;
+
+    seconds = tvB->tv_sec - cpyGlobal.tv_sec;
+    microSeconds = tvB->tv_usec - cpyGlobal.tv_usec;
+    milliSeconds = (seconds * 1000.000000) + (microSeconds / 1000.000000);
+    if ((double)t_flags.w * 1000.000000 < milliSeconds) {
+        sigHandlerInt(SIGINT);
+    }
+}
+
 /*
     max 16bits (65535 bits) to return
 */

@@ -26,22 +26,6 @@ OBJS_SRCS_BONUS = $(addprefix $(O_DIR_BONUS)/, $(SRCS_BONUS:.c=.o))
 
 OBJS_MAIN_BONUS = $(addprefix $(O_DIR_BONUS)/, $(SRCS_MAIN_BONUS:.c=.o))
 
-## BONUS PART ##
-
-#PATH_BONUS = ./bonus
-
-#O_DIR_BONUS = objs_bonus
-
-#SRCS_MAIN_BONUS = main_bonus.c
-
-#OBJS_MAIN_BONUS = $(addprefix $(O_DIR_BONUS)/, $(SRCS_MAIN_BONUS:.c=.o))
-
-#$(O_DIR_BONUS)/%.o: $(PATH_BONUS)/%.c
-#		@mkdir -p $(O_DIR_BONUS)
-#		$(GCC) $(FLAGS) $(INCLUDES_BONUS) -c $< -o $@
-
-## END BONUS PART ##
-
 $(O_DIR_BONUS)/%.o: $(TOOLS_BONUS)/%.c
 		@mkdir -p $(O_DIR_BONUS)
 		$(GCC) $(FLAGS) $(INCLUDES_BONUS) -c $< -o $@
@@ -54,16 +38,12 @@ $(O_DIR_BONUS)/%.o: ./bonus/%.c
 		@mkdir -p $(O_DIR_BONUS)
 		$(GCC) $(FLAGS) $(INCLUDES_BONUS) -c $< -o $@
 
-#$(NAME):	$(OBJS_T) $(OBJS_SRCS) $(OBJS_MAIN)
-#	make all -C ./srcs/libft
-#	$(GCC) $(FLAGS) $(INCLUDES) -o $(NAME) \
-#		$(OBJS_T) $(OBJS_SRCS) $(OBJS_MAIN) \
-#		./srcs/libft/libft.a
-
-bonus:	$(OBJS_T_BONUS) $(OBJS_SRCS_BONUS) $(OBJS_MAIN_BONUS)
+$(NAME_BONUS):	$(OBJS_T_BONUS) $(OBJS_SRCS_BONUS) $(OBJS_MAIN_BONUS)
 	make all -C ./srcs/libft
 	$(GCC) $(FLAGS) $(INCLUDES_BONUS) -o $(NAME_BONUS) \
 		$(OBJS_T_BONUS) $(OBJS_SRCS_BONUS) $(OBJS_MAIN_BONUS) \
 		./srcs/libft/libft.a
+
+bonus:	$(NAME_BONUS)
 
 .PHONY: bonus

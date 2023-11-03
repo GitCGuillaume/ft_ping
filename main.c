@@ -85,11 +85,11 @@ static int openSocket() {
     int     fd = -1;
 
     if (ttl == 0) {
-        printf("ping: option value too small: %d\n", ttl);
+        dprintf(2, "ping: option value too small: %d\n", ttl);
         freeaddrinfo(listAddr);
         exit(1);
     } else if (ttl < 0 || ttl > 255) {
-        printf("ping: option value too big: %d\n", ttl);
+        dprintf(2, "ping: option value too big: %d\n", ttl);
         freeaddrinfo(listAddr);
         exit(1);
     }
