@@ -24,8 +24,9 @@
 struct s_flags {
     char v;
     char interrogation;
+    short int   tos;
+    short int   ttl;
     int w;
-    ssize_t ttl;
 };
 
 /*

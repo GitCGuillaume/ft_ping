@@ -108,6 +108,14 @@ static int openSocket() {
                     close(fdSocket);
                 exit(EXIT_FAILURE);
             }
+            if (t_flags.tos != 0) {
+                if (setsockopt(fd, IPPROTO_IP, IP_TOS, &t_flags.tos, sizeof(char)) != 0) {  
+                    dprintf(2, "%s", "Couldn't set option TTL socket.\n");
+                    if (fdSocket >= 0)
+                        close(fdSocket);
+                    exit(EXIT_FAILURE);
+                }
+            }
             break ;
         }
         mem = mem->ai_next;
@@ -115,8 +123,8 @@ static int openSocket() {
     return (fd);
 }
 
-static ssize_t				ft_strToLong(const char *original, char **str) {
-    ssize_t result = 0;
+static short int    findTtl(const char *original, char **str) {
+    short int result = 0;
 
     if (!str[0][6]) {
         dprintf(2, "ping: option value too small:\n");
@@ -136,6 +144,36 @@ static ssize_t				ft_strToLong(const char *original, char **str) {
             exit(1);
         } else if (result < 0 || result > 255) {
             dprintf(2, "ping: option value too big: %s\n", original);
+            exit(1);
+        }
+    }
+    return (result);
+}
+
+short int				ft_strToShort(const char *original, char **str) {
+    short int result = 0;
+
+    if (!str[0][0]) {
+        printf("ping: option value too small:\n");
+        exit(1);
+    }
+    if (str[0][0] == '-') {
+        printf("ping: option value too big: %s\n", original);
+        exit(1);
+    }
+    for (; *str[0] != 0; (*str)++) {
+        if (ft_isdigit(*str[0])) {
+            result = result * 10 + *str[0] - '0';
+        } else {
+            dprintf(2, "ping: invalid value (`%s\' near `%s\')\n",
+                original, str[0]);
+            exit(1);
+        }
+        if (result == 0) {
+            printf("ping: option value too small: %s\n", original);
+            exit(1);
+        } else if (result > 255) {
+            printf("ping: option value too big: %s\n", original);
             exit(1);
         }
     }
@@ -187,8 +225,11 @@ static void    searchFlags(char *argv[]) {
                 } else if (argv[i][j] == 'w') {
                     t_flags.w = ft_strToUInt((argv[i + 1]), &argv[i + 1]);
                     break ;
+                } else if (argv[i][j] == 'T') {
+                    t_flags.tos = ft_strToShort((argv[i + 1]), &argv[i + 1]);
+                    break ;
                 } else if(!ft_strncmp(&argv[i][j], "-ttl", 4)) {
-                    t_flags.ttl = ft_strToLong((argv[i] + 6), &argv[i]);
+                    t_flags.ttl = findTtl((argv[i] + 6), &argv[i]);
                     break ;
                 } else {
                     dprintf(2, "%s%c%c\n", "ping: invalid option -- \'", argv[i][j], '\'');
@@ -259,6 +300,7 @@ int main(int argc, char *argv[]) {
     t_flags.v = FALSE;
     t_flags.interrogation = FALSE;
     t_flags.ttl = 60;
+    t_flags.tos = 0;
     //init round trip time
     if (getuid() != 0) {
         dprintf(2, "%s", "Please use root privileges.\n");

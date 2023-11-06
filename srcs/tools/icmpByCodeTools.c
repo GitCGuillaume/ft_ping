@@ -17,8 +17,8 @@ void    headerDumpIp(struct iphdr *ip) {
     const char * saddr = inet_ntop(AF_INET, &ip->saddr, src, INET_ADDRSTRLEN);
     const char * daddr = inet_ntop(AF_INET, &ip->daddr, dst, INET_ADDRSTRLEN);
     printf("\nIP Hdr Dump:\n %u%u%hhu%hhu %04hx",
-        ip->version, ip->ihl, (uint8_t)(ip->tos & 0xFC),
-        (uint8_t)(ip->tos & 0x3), ip->tot_len);
+        ip->version, ip->ihl, (uint8_t)(ip->tos & 0xF0) >> 4,
+        (uint8_t)(ip->tos & 0xF), ip->tot_len);
     printf(" %04hx %04hx %02hhu%02hhu", ip->id, ip->frag_off, ip->ttl, ip->protocol);
     printf(" %04hx %04hx %04hx %04hx %04hx\n", ip->check,
         convertEndianess(ip->saddr & 0x0000FFFF), convertEndianess(ip->saddr >> 16),
