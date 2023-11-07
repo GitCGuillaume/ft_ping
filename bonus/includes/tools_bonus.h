@@ -22,11 +22,12 @@
 #define FQDN_MAX 255
 
 struct s_flags {
-    char v;
-    char interrogation;
-    short int   tos;
-    short int   ttl;
-    int w;
+    char    v;
+    char    interrogation;
+    uint32_t    tos;
+    uint32_t    ttl;
+    uint32_t    w;
+    uint32_t    preload;
 };
 
 /*

@@ -90,7 +90,8 @@ static void    sigHandlerAlrm(int sigNum) {
     if (t_flags.w)
         timerFlagExit(&tvB, gTimer);
     //Call another ping
-    alarm(1);
+    if (!t_flags.preload)
+        alarm(1);
 }
 
 static void    displayPingHeader() {
@@ -113,6 +114,16 @@ static void    displayPingHeader() {
             convertEndianess(pingMemory[0].icmp.un.echo.id));
 }
 
+void    launchPreload(void) {
+    if (t_flags.preload) {
+        for (uint32_t i = 0; i < t_flags.preload; ++i) {
+            sigHandlerAlrm(SIGALRM);
+            icmpGetResponse();
+        }
+        t_flags.preload = 0;
+    }
+}
+
 /*
     type + code important for internet control message protocol
     https://www.ibm.com/docs/fr/qsip/7.5?topic=applications-icmp-type-code-ids
@@ -127,35 +138,39 @@ void    runIcmp() {
     struct timeval tvB;
     char buff[ECHO_REQUEST_SIZE];
     int result = -1;
+    int cpyI;
 
     if (signal(SIGALRM, sigHandlerAlrm) == SIG_ERR)
         exitInet();
-    //init vars part
-    ft_memset(buff, 0, ECHO_REQUEST_SIZE);
-    initPing(&pingMemory[0]);
-    //display ping header
-    displayPingHeader();
     //get timestamp for ping payload
     if (t_flags.w) {
         if (gettimeofday(&gTimer, 0) < 0) {
             exitInet();
         }
     }
-    if (gettimeofday(&tvB, 0) < 0) {
-        exitInet();
-    }
-    fillBuffer(buff, &pingMemory[0], &tvB);
-    //inc nb packets and send
-    roundTripGlobal.packetSend++;
-    result = sendto(fdSocket, buff,
-        ECHO_REQUEST_SIZE, 0,
-        listAddr->ai_addr, sizeof(*listAddr->ai_addr));
-    if (result < 0) {
-        freeaddrinfo(listAddr);
-        dprintf(2, "%s\n", gai_strerror(result));
-        if (fdSocket >= 0)
-            close(fdSocket);
-        exit(1);
+    //display ping header
+    displayPingHeader();
+    for (uint32_t i = 0; i <= t_flags.preload; ++i) {
+        cpyI = roundTripGlobal.packetSend;
+        //ft_memset(buff, 0, ECHO_REQUEST_SIZE);
+        initPing(&pingMemory[cpyI]);
+        if (gettimeofday(&tvB, 0) < 0) {
+            exitInet();
+        }
+        fillBuffer(buff, &pingMemory[cpyI], &tvB);
+        //inc nb packets and send
+        roundTripGlobal.packetSend++;
+        result = sendto(fdSocket, buff,
+            ECHO_REQUEST_SIZE, 0,
+            listAddr->ai_addr, sizeof(*listAddr->ai_addr));
+        if (result < 0) {
+            freeaddrinfo(listAddr);
+            dprintf(2, "%s\n", gai_strerror(result));
+            if (fdSocket >= 0)
+                close(fdSocket);
+            exit(1);
+        }
+        icmpGetResponse();
     }
     //Call another ping
     alarm(1);

@@ -2,7 +2,9 @@ help_ft_ping.txt
 a.out
 ft_ping_testers_python
 objs
+objs_bonus
 srcs/libft/*.o
 srcs/libft/libft.a
 ft_ping
+ft_ping_bonus
 tutorial-env
