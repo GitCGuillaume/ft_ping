@@ -1,6 +1,7 @@
 #ifndef TOOLS_BONUS_H
 # define TOOLS_BONUS_H
 
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include "netinet/ip_icmp.h"
@@ -48,6 +49,7 @@ struct s_round_trip {
     uint32_t    packetReceive;
     uint32_t    packetDuplicate;
     uint32_t    packetSend;
+    //uint32_t    packetReq;
 };
 
 void    sigHandlerInt(int sigNum);

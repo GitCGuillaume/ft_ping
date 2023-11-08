@@ -47,7 +47,7 @@ static void    fillBuffer(char *buff, struct s_ping_memory *ping,
     char value = 0;
 
     ft_memcpy(buff, &ping->icmp, sizeof(ping->icmp));
-    ft_memcpy(buff + sizeof(pingMemory->icmp), tvB, sizeof(*tvB));
+    ft_memcpy(buff + sizeof(ping->icmp), tvB, sizeof(*tvB));
     for (; j < max; ++j)
         buff[j] = value++;
     ping->icmp.checksum
@@ -57,7 +57,7 @@ static void    fillBuffer(char *buff, struct s_ping_memory *ping,
 
 /* send ping using signal alarm */
 static void    sigHandlerAlrm(int sigNum) {
-    int cpyI = roundTripGlobal.packetSend;
+    int cpyI = roundTripGlobal.packetSend % 65536;
 
     if (sigNum != SIGALRM)
         return ;
