@@ -1,7 +1,7 @@
 #include "ft_icmp_bonus.h"
 #include "tools_bonus.h"
 
-struct timeval gTimer;
+static struct timeval gTimer;
 
 /* Get request response */
 static void    icmpGetResponse() {
@@ -85,8 +85,8 @@ static void    sigHandlerAlrm(int sigNum) {
     fillBuffer(buff, &pingMemory[cpyI], &tvB);
     //printf("send\n");
     //printf("c:%d\n", cpyI);   
-    if (!t_flags.preload) {
-        printf("qsdqsd\n");
+   // if (!t_flags.preload) {
+   //     printf("qsdqsd\n");
        /* printf("prealod\n");
         printf("c:%d\n", cpyI);
         struct itimerval new, old;
@@ -96,10 +96,9 @@ static void    sigHandlerAlrm(int sigNum) {
         new.it_value.tv_usec = 0;*/
             //new.it_value.tv_sec, new.it_value.tv_usec;
        // printf("ret:%d\n", setitimer(ITIMER_REAL, &new, &old));
-        alarm(1);
-    } else {
-        t_flags.preload--;
-    }
+        //alarm(1);
+    //} else {
+    //}
     //if (0 < t_flags.preload)
     //    t_flags.preload--;
     //if (0 < t_flags.preload)
@@ -116,7 +115,8 @@ static void    sigHandlerAlrm(int sigNum) {
             close(fdSocket);
         exit(1);
     }
-    
+    //if (t_flags.preload)
+      //  t_flags.preload--;
     //Call another ping
     //if (!t_flags.preload)
     //    alarm(1);
@@ -141,7 +141,7 @@ static void    displayPingHeader() {
             convertEndianess(pingMemory[0].icmp.un.echo.id),
             convertEndianess(pingMemory[0].icmp.un.echo.id));
 }
-
+/*
 void    launchPreload(void) {
     if (t_flags.preload) {
         for (uint32_t i = 0; i < t_flags.preload; ++i) {
@@ -150,7 +150,7 @@ void    launchPreload(void) {
         }
         t_flags.preload = 0;
     }
-}
+}*/
 
 /*
     type + code important for internet control message protocol
@@ -161,12 +161,13 @@ void    launchPreload(void) {
 */
 /* (ipv4 max)65535 - (sizeof ip)20 - (sizeof icmp)8 */
 void    runIcmp() {
+    //char preloadExist = FALSE;
     if (!listAddr)
         exitInet();
-    //struct timeval tvB;
-    //char buff[ECHO_REQUEST_SIZE];
-    //int result = -1;
-    //int cpyI;
+    struct timeval tvB;
+    char buff[ECHO_REQUEST_SIZE];
+    int result = -1;
+    int cpyI;
 
     if (signal(SIGALRM, sigHandlerAlrm) == SIG_ERR)
         exitInet();
@@ -178,54 +179,65 @@ void    runIcmp() {
     }
     //display ping header
     displayPingHeader();
-    //for (uint32_t i = 0; i <= t_flags.preload; ++i) {
-    //if (USHRT_MAX < roundTripGlobal.packetReq)
-    //    roundTripGlobal.packetReq = 0;
-    /*cpyI = roundTripGlobal.packetSend % 65536;
-    ft_memset(buff, 0, ECHO_REQUEST_SIZE);
-    initPing(&pingMemory[cpyI], cpyI);
-    if (gettimeofday(&tvB, 0) < 0) {
-        exitInet();
-    }
-    fillBuffer(buff, &pingMemory[cpyI], &tvB);
-    //inc nb packets and send
-    roundTripGlobal.packetSend++;
-    //roundTripGlobal.packetReq++;
-    result = sendto(fdSocket, buff,
-        ECHO_REQUEST_SIZE, 0,
-        listAddr->ai_addr, listAddr->ai_addrlen);
-    if (result < 0) {
-        printf("falaid3\n");
-        freeaddrinfo(listAddr);
-        dprintf(2, "ping: sending packet: %s\n", strerror(errno));
-        if (fdSocket >= 0)
-            close(fdSocket);
-        exit(1);
-    }*/
+    for (uint32_t i = 0; i <= t_flags.preload; ++i) {
+        //if (USHRT_MAX < roundTripGlobal.packetReq)
+        //    roundTripGlobal.packetReq = 0;
+        cpyI = roundTripGlobal.packetSend % 65536;
+        ft_memset(buff, 0, ECHO_REQUEST_SIZE);
+        initPing(&pingMemory[cpyI], cpyI);
+        if (gettimeofday(&tvB, 0) < 0) {
+            exitInet();
+        }
+        fillBuffer(buff, &pingMemory[cpyI], &tvB);
+        //inc nb packets and send
+        roundTripGlobal.packetSend++;
+        //roundTripGlobal.packetReq++;
+        result = sendto(fdSocket, buff,
+            ECHO_REQUEST_SIZE, 0,
+            listAddr->ai_addr, listAddr->ai_addrlen);
+        if (result < 0) {
+            freeaddrinfo(listAddr);
+            dprintf(2, "ping: sending packet: %s\n", strerror(errno));
+            if (fdSocket >= 0)
+                close(fdSocket);
+            exit(1);
+        }
         //icmpGetResponse();
-    //}
+    }
     //Call another ping
     //alarm(1);
-    if (0 < t_flags.preload) {
+    /*if (0 < t_flags.preload) {
         struct itimerval new, old;
         new.it_interval.tv_sec = 0;
         new.it_interval.tv_usec = 1;
         new.it_value.tv_sec = 0;
         new.it_value.tv_usec = 1;
+        preloadExist = TRUE;
         //    new.it_value.tv_sec, new.it_value.tv_usec;
         printf("ret:%d\n", setitimer(ITIMER_REAL, &new, &old));
     } else {
-        printf("????????\n");
-        struct itimerval new, old;
-        new.it_interval.tv_sec = 1;
-        new.it_interval.tv_usec = 0;
-        new.it_value.tv_sec = 1;
-        new.it_value.tv_usec = 0;
-        //    new.it_value.tv_sec, new.it_value.tv_usec;
-        printf("ret:%d\n", setitimer(ITIMER_REAL, &new, &old));
+    */    //printf("????????\n");
+    struct itimerval new, old;
+    new.it_interval.tv_sec = 1;
+    new.it_interval.tv_usec = 0;
+    new.it_value.tv_sec = 1;
+    new.it_value.tv_usec = 0;
+    //    new.it_value.tv_sec, new.it_value.tv_usec;
+    printf("ret:%d\n", setitimer(ITIMER_REAL, &new, &old));
     
-    }
+    //}
     while (1) {
+        /*if (preloadExist == TRUE
+            && t_flags.preload < roundTripGlobal.packetSend) {
+            struct itimerval new, old;
+            new.it_interval.tv_sec = 1;
+            new.it_interval.tv_usec = 0;
+            new.it_value.tv_sec = 1;
+            new.it_value.tv_usec = 0;
+            preloadExist = FALSE;
+            printf("end\n");
+            printf("ret:%d\n", setitimer(ITIMER_REAL, &new, &old));
+        }*/
         icmpGetResponse();
         usleep(1);
     }

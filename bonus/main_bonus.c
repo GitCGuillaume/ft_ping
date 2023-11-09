@@ -58,7 +58,7 @@ void    sigHandlerInt(int sigNum) {
         double loseRatePct = (((double)roundTripGlobal.packetSend - (
             double)roundTripGlobal.packetReceive) / (double)roundTripGlobal.packetSend)
             * 100.000000;
-        printf(", %.0f%% packet loss\n", loseRatePct);
+        printf(", %d%% packet loss\n", (int)loseRatePct);
     }
     if  (listAddr)
         freeaddrinfo(listAddr);
