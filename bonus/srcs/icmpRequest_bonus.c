@@ -71,6 +71,8 @@ static void    sigHandlerAlrm(int sigNum) {
     int result = -1;
 
     //init part
+    if (cpyI == 65535)
+        ft_memset(pingMemory, 0, sizeof(pingMemory));
     ft_memset(buff, 0, ECHO_REQUEST_SIZE);
     //if (USHRT_MAX < roundTripGlobal.packetReq)
     //    roundTripGlobal.packetReq = 0;
@@ -119,7 +121,7 @@ static void    sigHandlerAlrm(int sigNum) {
       //  t_flags.preload--;
     //Call another ping
     //if (!t_flags.preload)
-    //    alarm(1);
+    alarm(1);
 }
 
 static void    displayPingHeader() {
@@ -183,6 +185,8 @@ void    runIcmp() {
         //if (USHRT_MAX < roundTripGlobal.packetReq)
         //    roundTripGlobal.packetReq = 0;
         cpyI = roundTripGlobal.packetSend % 65536;
+        if (cpyI == 65535)
+            ft_memset(pingMemory, 0, sizeof(pingMemory));
         ft_memset(buff, 0, ECHO_REQUEST_SIZE);
         initPing(&pingMemory[cpyI], cpyI);
         if (gettimeofday(&tvB, 0) < 0) {
@@ -217,15 +221,25 @@ void    runIcmp() {
         printf("ret:%d\n", setitimer(ITIMER_REAL, &new, &old));
     } else {
     */    //printf("????????\n");
-    struct itimerval new, old;
+    /*struct itimerval new, old;
     new.it_interval.tv_sec = 1;
     new.it_interval.tv_usec = 0;
     new.it_value.tv_sec = 1;
     new.it_value.tv_usec = 0;
     //    new.it_value.tv_sec, new.it_value.tv_usec;
     printf("ret:%d\n", setitimer(ITIMER_REAL, &new, &old));
-    
-    //}
+    */
+    if (!t_flags.interval) {
+        alarm(1);
+    } else {
+        struct itimerval new, old;
+        new.it_interval.tv_sec = t_flags.interval;
+        new.it_interval.tv_usec = 0;
+        new.it_value.tv_sec = t_flags.interval;
+        new.it_value.tv_usec = 0;
+        //    new.it_value.tv_sec, new.it_value.tv_usec;
+        printf("ret:%d\n", setitimer(ITIMER_REAL, &new, &old));
+    }
     while (1) {
         /*if (preloadExist == TRUE
             && t_flags.preload < roundTripGlobal.packetSend) {

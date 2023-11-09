@@ -14,7 +14,7 @@ int fdSocket;//must be also closed on CTRL+C etc
 */
 static double   ftSqrt(double num) {
     double x = num;
-    double old = 0;
+    double old = 0.000000;
 
     if (num < 0 || num == 0)
         return (0.0f);

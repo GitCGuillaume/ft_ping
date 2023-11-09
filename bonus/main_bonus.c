@@ -13,8 +13,9 @@ int fdSocket;//must be also closed on CTRL+C etc
     https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Heron's_method
 */
 static double   ftSqrt(double num) {
+    //x is whatever value near square root
     double x = num;
-    double old = 0;
+    double old = 0.000000;
 
     if (num < 0 || num == 0)
         return (0.0f);
@@ -27,7 +28,7 @@ static double   ftSqrt(double num) {
 
 /*
     https://en.wikipedia.org/wiki/Standard_deviation
-    https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+    https://fr.wikipedia.org/wiki/Variance_(mathématiques)
 */
 void    sigHandlerInt(int sigNum) {
     double  average;
@@ -161,6 +162,30 @@ uint32_t    parseArgument(const char *cmd,
     //printf("res:%u\n", result);
     return (result);
 }
+
+uint32_t    parsePreload(const char *cmd,
+    const char *original, char **str,
+    uint32_t maxValue) {
+    uint32_t    result = 0;
+
+    requireArgument(cmd, original);
+    //printf("s:%s\n", str[0]);
+    for (; *str[0] != 0; (*str)++) {
+        if (ft_isdigit(*str[0])) {
+            result = result * 10 + *str[0] - '0';
+        } else {
+            dprintf(2, "ping: invalid preload (`%s\' near `%s\')\n",
+                original, str[0]);
+            exit(1);
+        }
+        if (result > maxValue) {
+            dprintf(2, "ping: option preload too big: %s\n", original);
+            exit(1);
+        }
+    }
+    //printf("res:%u\n", result);
+    return (result);
+}
 /*
 static short int    findTtl(const char *original, char **str) {
     short int result = 0;
@@ -272,12 +297,15 @@ unsigned int				ft_strToUInt(const char *cmd, const char *original, char **str) 
 }
 */
 
-void    findEqualValue(char **str) {
+char    findEqualValue(char **str) {
     while (*str[0] && *str[0] != '=') {
         (*str)++;
-   }
-   if (*str[0] && *str[0] == '=')
+   } 
+   if (*str[0] && *str[0] == '=') {
         (*str)++;
+        return (TRUE);
+   }
+   return (FALSE);
 }
 
 static void    searchFlags(char *argv[]) {
@@ -294,37 +322,55 @@ static void    searchFlags(char *argv[]) {
                     exit(0);
                 } else if (argv[i][j] == 'w') {
                     t_flags.w = parseArgument("w", argv[i + 1], &argv[i + 1], 2147483647);
-                    if (t_flags.w == 0)
-                        dprintf(2, "ping: option value too small: %d\n", t_flags.w);
+                    //if (t_flags.w == 0)
+                    //    dprintf(2, "ping: option value too small: %d\n", t_flags.w);
                     //printf("f:%u\n", t_flags.w);
                     //t_flags.w = ft_strToUInt("w", (argv[i + 1]), &argv[i + 1]);
                     break ;
                 } else if (argv[i][j] == 'T') {
                     t_flags.tos = parseArgument("T", argv[i + 1], &argv[i + 1], 255);
-                    if (t_flags.tos == 0)
-                        dprintf(2, "ping: option value too small: %d\n", t_flags.tos);
+                    //if (t_flags.tos == 0)
+                    //    dprintf(2, "ping: option value too small: %d\n", t_flags.tos);
                     //t_flags.tos = ft_strToShort("T", (argv[i + 1]), &argv[i + 1]);
                     break ;
                 } else if(!ft_strncmp(&argv[i][j], "-ttl", 4)) {
-                    findEqualValue(&argv[i]);
-                    t_flags.ttl = parseArgument("-ttl", argv[i], &argv[i], 255);
-                    if (t_flags.ttl == 0)
-                        dprintf(2, "ping: option value too small: %d\n", t_flags.ttl);
+                    if (findEqualValue(&argv[i]) == TRUE)
+                        t_flags.ttl = parseArgument("-ttl", argv[i], &argv[i], 255);
+                    else
+                        t_flags.ttl = parseArgument("-ttl", argv[i + 1], &argv[i + 1], 255);
+                   // if (t_flags.ttl == 0)
+                     //   dprintf(2, "ping: option value too small: %d\n", t_flags.ttl);
                     //t_flags.ttl = findTtl((argv[i] + 6), &argv[i]);
                     break ;
                 }
                 else if (argv[i][j] == 'l'
                     || !ft_strncmp(&argv[i][j], "-preload", 8)) {
                     if (argv[i][1] && argv[i][1] == '-') {
-                        findEqualValue(&argv[i]);
-                        t_flags.preload
-                            = parseArgument(argv[i], argv[i], &argv[i], 2147483647);
+                        //check github issues
+                        if (findEqualValue(&argv[i]) == TRUE)
+                            t_flags.preload
+                                = parsePreload(argv[i], argv[i], &argv[i], 2147483647);
+                        else
+                            t_flags.preload
+                                = parsePreload(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
                     } else {
                         t_flags.preload
-                            = parseArgument(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
+                            = parsePreload(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
                     }
                     break ;
                     //t_flags.preload = parsePreload(argv[i], argv[i + 1], &argv[i + 1]);
+                }
+                else if (argv[i][j] == 'i'
+                    || !ft_strncmp(&argv[i][j], "-interval", 8)) {
+                    if (argv[i][1] && argv[i][1] == '-') {
+                        findEqualValue(&argv[i]);
+                        t_flags.interval
+                            = parseArgument(argv[i], argv[i], &argv[i], 2147483647);
+                    } else {
+                        t_flags.interval
+                            = parseArgument(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
+                    }
+                    break ;
                 } else {
                     dprintf(2, "%s%c%c\n", "ping: invalid option -- \'", argv[i][j], '\'');
                     dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
@@ -395,6 +441,9 @@ int main(int argc, char *argv[]) {
     t_flags.interrogation = FALSE;
     t_flags.ttl = 60;
     t_flags.tos = 0;
+    t_flags.w = 0;
+    t_flags.preload = 0;
+    t_flags.interval = 0;
     //init round trip time
     if (getuid() != 0) {
         dprintf(2, "%s", "Please use root privileges.\n");

@@ -29,6 +29,7 @@ struct s_flags {
     uint32_t    ttl;
     uint32_t    w;
     uint32_t    preload;
+    uint32_t    interval;
 };
 
 /*

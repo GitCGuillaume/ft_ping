@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 double   ftSqrt(double num) {
-    double x = num;
+    double x = num;//(num + num / num) / 2;
     double old = 0;
 
     if (num < 0 || num == 0)
