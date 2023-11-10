@@ -125,7 +125,6 @@ static int openSocket() {
 }
 
 static void requireArgument(const char *cmd, const char *original) {
-    //printf("or:%s\n", original);
     if (!original) {
         if (cmd[0] == '-')
             dprintf(2, "ping: option \'-%s\' requires an argument\n", cmd);
@@ -140,18 +139,24 @@ uint32_t    parseArgument(const char *cmd,
     const char *original, char **str,
     uint32_t maxValue) {
     uint32_t    result = 0;
-    uint32_t    jmpSpace = 0;
+    uint32_t    i = 0;
 
     requireArgument(cmd, original);
-    while (str[0][jmpSpace] && str[0][jmpSpace] == ' ') {
-        ++jmpSpace;
+    if (!str[0][i]) {
+        dprintf(2, "ping: option value too small: %s\n", original);
+        exit(1);
     }
-    if (!str[0][jmpSpace]) {
+    while (str[0][i] && str[0][i] == ' ')
+        ++i;
+    if (ft_isdigit(str[0][i])) {
+        (*str) += i;
+    }
+    i = 0;
+    if (!str[0][i]) {
         dprintf(2, "ping: invalid value (`%s\' near `%s\')\n",
             original, str[0]);
         exit(1);
     }
-    (*str) += jmpSpace;
     for (; *str[0] != 0; (*str)++) {
         if (ft_isdigit(*str[0])) {
             result = result * 10 + *str[0] - '0';
@@ -172,6 +177,45 @@ uint32_t    parseArgument(const char *cmd,
     return (result);
 }
 
+uint32_t    parseArgumentI(const char *cmd,
+    const char *original, char **str,
+    uint32_t maxValue) {
+    uint32_t    result = 0;
+    uint32_t    i = 0;
+
+    requireArgument(cmd, original);
+    while (str[0][i] && str[0][i] == ' ')
+        ++i;
+    if (ft_isdigit(str[0][i])) {
+        (*str) += i;
+    }
+    i = 0;
+    if (!str[0][i]) {
+        return (0);
+    }
+    for (; *str[0] != 0; (*str)++) {
+        if (ft_isdigit(*str[0])) {
+            result = result * 10 + *str[0] - '0';
+        } else {
+            dprintf(2, "ping: invalid value (`%s\' near `%s\')\n",
+                original, str[0]);
+            dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
+            exit(1);
+        }
+        if (result == 0) {
+            dprintf(2, "ping: option value too small: %s\n", original);
+            dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
+            exit(1);
+        } else if (result > maxValue) {
+            dprintf(2, "ping: option value too big: %s\n", original);
+            dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
+            exit(1);
+        }
+    }
+    //printf("res:%u\n", result);
+    return (result);
+}
+
 uint32_t    parsePreload(const char *cmd,
     const char *original, char **str,
     uint32_t maxValue) {
@@ -181,8 +225,9 @@ uint32_t    parsePreload(const char *cmd,
     requireArgument(cmd, original);
     while (str[0][i] && str[0][i] == ' ')
         ++i;
-    if (str[0][i])
+    if (ft_isdigit(str[0][i])) {
         (*str) += i;
+    }
     for (; *str[0] != 0; (*str)++) {
         if (ft_isdigit(*str[0])) {
             result = result * 10 + *str[0] - '0';
@@ -200,28 +245,55 @@ uint32_t    parsePreload(const char *cmd,
 }
 
 char    findArgument(char **str) {
-    if (str[0][2]) {
+    if (str[0][0] && str[0][1] && str[0][2]) {
         (*str) += 2;
-        /*while (str[0][i] && str[0][i] == ' ')
-            ++i;
-        if (str[0][i])
-            (*str) += i;
-        */
         return (TRUE);
     }
     return (FALSE);
 }
+/*
+char    findArgumentMinus(char **str) {
+    if (str[0][0] && str[0][1] != '-')
+        return (findArgument(str));
+    for (int i = 0; )
+    return (FALSE);
+}*/
 
-
-char    findEqualValue(char **str) {
-    while (*str[0] && *str[0] != '=') {
-        (*str)++;
-    } 
-   if (*str[0] && *str[0] == '=') {
-        (*str)++;
+char    findArgumentEq(char **str, int i) {
+    if (!str[0][i])
         return (TRUE);
-   }
+    if (str[0][i] == '=') {
+        (*str) += i+1;
+        return (TRUE);
+    }
    return (FALSE);
+}
+
+static void     searchBigOption(char *argv[]) {
+    for (int i = 1; argv[i] != NULL; ++i) {
+        if(!ft_strncmp(argv[i], "--ttl", 5)
+            && findArgumentEq(&argv[i], 5)
+        ) {
+            if (!argv[i][5])
+                t_flags.ttl = parseArgument(argv[i], argv[i + 1], &argv[i + 1], 255);
+            else {
+                t_flags.ttl = parseArgument(argv[i], argv[i], &argv[i], 255);
+            }
+            break ;
+        } else if ((!ft_strncmp(argv[i], "--preload", 9)
+            && findArgumentEq(&argv[i], 9))) {
+            if (!argv[i][9])
+                t_flags.preload = parsePreload(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
+            else {
+                t_flags.preload = parsePreload(argv[i], argv[i], &argv[i], 2147483647);
+            }
+            break ;
+        } else {
+            dprintf(2, "%s%s%c\n", "ping: unrecognized option \'", argv[i], '\'');
+            dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
+            exit(64);
+        }
+    }
 }
 
 static void    searchFlags(char *argv[]) {
@@ -241,61 +313,27 @@ static void    searchFlags(char *argv[]) {
                         t_flags.w = parseArgument("w", argv[i], &argv[i], 2147483647);
                     else
                         t_flags.w = parseArgument("w", argv[i + 1], &argv[i + 1], 2147483647);
-                    //if (t_flags.w == 0)
-                    //    dprintf(2, "ping: option value too small: %d\n", t_flags.w);
-                    //printf("f:%u\n", t_flags.w);
-                    //t_flags.w = ft_strToUInt("w", (argv[i + 1]), &argv[i + 1]);
                     break ;
                 } else if (argv[i][j] == 'T') {
                     if (findArgument(&argv[i]) == TRUE)
                         t_flags.tos = parseArgument("T", argv[i], &argv[i], 2147483647);
                     else
                         t_flags.tos = parseArgument("T", argv[i + 1], &argv[i + 1], 2147483647);
-                    //if (t_flags.tos == 0)
-                    //    dprintf(2, "ping: option value too small: %d\n", t_flags.tos);
-                    //t_flags.tos = ft_strToShort("T", (argv[i + 1]), &argv[i + 1]);
                     break ;
-                } else if(!ft_strncmp(&argv[i][j], "-ttl", 4)) {
-                    if (findEqualValue(&argv[i]) == TRUE) {
-                        //if (!argv[i][0])
-                        t_flags.ttl = parseArgument("-ttl", argv[i], &argv[i], 255);
-                    }
+                } else if (argv[i][j] == 'l') {
+                    if (findArgument(&argv[i]) == TRUE)
+                        t_flags.preload = parsePreload(argv[i], argv[i], &argv[i], 2147483647);
                     else
-                        t_flags.ttl = parseArgument("-ttl", argv[i + 1], &argv[i + 1], 255);
-                   // if (t_flags.ttl == 0)
-                     //   dprintf(2, "ping: option value too small: %d\n", t_flags.ttl);
-                    //t_flags.ttl = findTtl((argv[i] + 6), &argv[i]);
+                        t_flags.preload = parsePreload(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
+                    break ;
+                } else if (argv[i][j] == 'i') {
+                    if (findArgument(&argv[i]) == TRUE)
+                        t_flags.preload = parseArgumentI(argv[i], argv[i], &argv[i], 2147483647);
+                    else
+                        t_flags.preload = parseArgumentI(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
                     break ;
                 }
-                else if (argv[i][j] == 'l'
-                    || !ft_strncmp(&argv[i][j], "-preload", 8)) {
-                    if (argv[i][1] && argv[i][1] == '-') {
-                        //check github issues
-                        if (findEqualValue(&argv[i]) == TRUE)
-                            t_flags.preload
-                                = parsePreload(argv[i], argv[i], &argv[i], 2147483647);
-                        else
-                            t_flags.preload
-                                = parsePreload(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
-                    } else {
-                        t_flags.preload
-                            = parsePreload(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
-                    }
-                    break ;
-                    //t_flags.preload = parsePreload(argv[i], argv[i + 1], &argv[i + 1]);
-                }
-                else if (argv[i][j] == 'i'
-                    || !ft_strncmp(&argv[i][j], "-interval", 8)) {
-                    if (argv[i][1] && argv[i][1] == '-') {
-                        findEqualValue(&argv[i]);
-                        t_flags.interval
-                            = parseArgument(argv[i], argv[i], &argv[i], 2147483647);
-                    } else {
-                        t_flags.interval
-                            = parseArgument(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
-                    }
-                    break ;
-                } else {
+                else {
                     dprintf(2, "%s%c%c\n", "ping: invalid option -- \'", argv[i][j], '\'');
                     dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
                     exit(64);
@@ -355,6 +393,18 @@ static void    pingStart(int argc, char *argv[]) {
     }
 }
 
+void    findUnknowHost(char *argv[]) {
+    char *old = 0;
+
+    for (int i = 1; argv[i] != NULL; i++) {
+        if (argv[i][0] == '\0' && ft_strncmp(old, "-i", 2) != 0) {
+            dprintf(STDERR, "ping: %s\n", "unknown host");
+            exit(EXIT_FAILURE);
+        }
+        old = argv[i];
+    }
+}
+
 //ping [OPTIONS] host
 int main(int argc, char *argv[]) {
     char **memArgv = NULL;
@@ -377,9 +427,13 @@ int main(int argc, char *argv[]) {
         dprintf(2, "%s", "ping: missing host operand\nTry 'ping -?' for more information.\n");
         exit(64);
     }
+    findUnknowHost(argv);
     memArgv = argv;
     //printf("argv: %s mem: %s\n", argv[1], memArgv[1]);
-    searchFlags(memArgv);
+    if (argv[1][1] != '-')
+        searchFlags(memArgv);
+    else
+        searchBigOption(memArgv);
     //*(argv + 1) = memArgv;
     //printf("argv: %s mem: %s\n", argv[1], memArgv[1]);
     pingStart(argc, argv);

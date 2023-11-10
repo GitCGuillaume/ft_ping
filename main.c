@@ -197,6 +197,15 @@ static void    pingStart(int argc, char *argv[]) {
     }
 }
 
+void    findUnknowHost(char *argv[]) {
+    for (int i = 1; argv[i] != NULL; i++) {
+        if (argv[i][0] == '\0') {
+            dprintf(STDERR, "ping: %s\n", "unknown host");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
 //ping [OPTIONS] host
 int main(int argc, char *argv[]) {
     ft_memset(pingMemory, 0, sizeof(pingMemory));
@@ -212,6 +221,7 @@ int main(int argc, char *argv[]) {
         dprintf(2, "%s", "ping: missing host operand\nTry 'ping -?' for more information.\n");
         exit(64);
     }
+    findUnknowHost(argv);
     searchFlags(argv);
     pingStart(argc, argv);
     return (0);
