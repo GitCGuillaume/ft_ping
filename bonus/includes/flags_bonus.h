@@ -2,5 +2,6 @@
 # define FLAGS_BONUS_H
 
 void    flagInterrogation(void);
+void    flagUsage(void);
 
 #endif

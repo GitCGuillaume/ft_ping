@@ -121,7 +121,8 @@ static void    sigHandlerAlrm(int sigNum) {
       //  t_flags.preload--;
     //Call another ping
     //if (!t_flags.preload)
-    alarm(1);
+    if (t_flags.interval == -1)
+        alarm(1);
 }
 
 static void    displayPingHeader() {
@@ -180,6 +181,7 @@ void    runIcmp() {
         }
     }
     //display ping header
+    initPing(&pingMemory[0], 0);
     displayPingHeader();
     for (uint32_t i = 0; i <= t_flags.preload; ++i) {
         //if (USHRT_MAX < roundTripGlobal.packetReq)
@@ -229,7 +231,7 @@ void    runIcmp() {
     //    new.it_value.tv_sec, new.it_value.tv_usec;
     printf("ret:%d\n", setitimer(ITIMER_REAL, &new, &old));
     */
-    if (!t_flags.interval) {
+    if (t_flags.interval < 0.0f) {
         alarm(1);
     } else {
         struct itimerval new, old;

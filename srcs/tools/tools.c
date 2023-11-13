@@ -118,10 +118,37 @@ static void    AskIntt(char *ask) {
     ft_memcpy(ask, "Report bugs to <bug-inetutils@gnu.org>.\n", 40);
 }
 
+static void    AskUsage(char *ask) {
+    ft_memcpy(ask, "Usage: ping [-dnrvfqR?V] [-t TYPE] [-c NUMBER] [-i NUMBER] [-T NUM] [-w N]\n", 75);
+    ask += 75;
+    ft_memcpy(ask, "            [-W N] [-l NUMBER] [-p PATTERN] [-s NUMBER] [--address] [--echo]\n", 77);
+    ask += 77;
+    ft_memcpy(ask, "            [--mask] [--timestamp] [--type=TYPE] [--count=NUMBER] [--debug]\n", 76);
+    ask += 76;
+    ft_memcpy(ask,
+        "            [--interval=NUMBER] [--numeric] [--ignore-routing] [--ttl=N]\n", 73);
+    ask += 73;
+    ft_memcpy(ask, "            [--tos=NUM] [--verbose] [--timeout=N] [--linger=N] [--flood]\n", 73);
+    ask += 73;
+    ft_memcpy(ask, "            [--ip-timestamp=FLAG] [--preload=NUMBER] [--pattern=PATTERN]\n", 73);
+    ask += 73;
+    ft_memcpy(ask, "            [--quiet] [--route] [--size=NUMBER] [--help] [--usage] [--version]\n", 79);
+    ask += 79;
+    ft_memcpy(ask, "            HOST ...\n", 21);
+}
+
 void    flagInterrogation(void) {
     char    ask[2008];
 
     ft_memset(ask, 0, 2009);
     AskIntt(ask);
+    printf("%s", ask);
+}
+
+void    flagUsage(void) {
+    char    ask[548];
+
+    ft_memset(ask, 0, 548);
+    AskUsage(ask);
     printf("%s", ask);
 }

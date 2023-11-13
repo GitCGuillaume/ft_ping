@@ -126,10 +126,10 @@ static int openSocket() {
 
 static void requireArgument(const char *cmd, const char *original) {
     if (!original) {
-        if (cmd[0] == '-')
-            dprintf(2, "ping: option \'-%s\' requires an argument\n", cmd);
-        else
+        if (cmd[0] == '-' && cmd[1] == '-')
             dprintf(2, "ping: option \'%s\' requires an argument\n", cmd);
+        else
+            dprintf(2, "ping: option requires an argument -- \'%s\'\n", cmd);
         dprintf(2, "Try 'ping --help' or 'ping --usage' for more information.\n");
         exit(64);
     }
@@ -177,10 +177,11 @@ uint32_t    parseArgument(const char *cmd,
     return (result);
 }
 
-uint32_t    parseArgumentI(const char *cmd,
+float    parseArgumentI(const char *cmd,
     const char *original, char **str,
     uint32_t maxValue) {
-    uint32_t    result = 0;
+    float   result = 0.0f;
+    //float   fractional = 0.0f;
     uint32_t    i = 0;
 
     requireArgument(cmd, original);
@@ -202,17 +203,12 @@ uint32_t    parseArgumentI(const char *cmd,
             dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
             exit(1);
         }
-        if (result == 0) {
-            dprintf(2, "ping: option value too small: %s\n", original);
-            dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
-            exit(1);
-        } else if (result > maxValue) {
+        if (result > maxValue) {
             dprintf(2, "ping: option value too big: %s\n", original);
             dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
             exit(1);
         }
     }
-    //printf("res:%u\n", result);
     return (result);
 }
 
@@ -240,67 +236,89 @@ uint32_t    parsePreload(const char *cmd,
             exit(1);
         }
     }
-    //printf("res:%u\n", result);
     return (result);
 }
 
-char    findArgument(char **str) {
-    if (str[0][0] && str[0][1] && str[0][2]) {
-        (*str) += 2;
+char    findArgument(char **str, int i) {
+    if (str[i][0] && str[i][1] && str[i][2]) {
+        str[i] += 2;
         return (TRUE);
     }
     return (FALSE);
 }
-/*
-char    findArgumentMinus(char **str) {
-    if (str[0][0] && str[0][1] != '-')
-        return (findArgument(str));
-    for (int i = 0; )
-    return (FALSE);
-}*/
 
-char    findArgumentEq(char **str, int i) {
-    if (!str[0][i])
-        return (TRUE);
-    if (str[0][i] == '=') {
-        (*str) += i+1;
+char    findArgumentEq(char **str, int i, int j) {
+    if (!str[i][j]) {
         return (TRUE);
     }
-   return (FALSE);
+    if (str[i][j] == '=') {
+        str[i] += j + 1;
+        return (TRUE);
+    }
+    return (FALSE);
 }
 
-static void     searchBigOption(char *argv[]) {
-    for (int i = 1; argv[i] != NULL; ++i) {
-        if(!ft_strncmp(argv[i], "--ttl", 5)
-            && findArgumentEq(&argv[i], 5)
-        ) {
-            if (!argv[i][5])
-                t_flags.ttl = parseArgument(argv[i], argv[i + 1], &argv[i + 1], 255);
-            else {
-                t_flags.ttl = parseArgument(argv[i], argv[i], &argv[i], 255);
+static void     searchBigOption(char *argv[], int argc) {
+    for (int i = 1; i < argc; ++i) {
+        if (argv[i] && argv[i][0] == '-' && argv[i][1] == '-') {
+            if (!ft_strncmp(argv[i], "--verbose", 9))
+                    t_flags.v = TRUE;
+            else if(!ft_strncmp(argv[i], "--tos", 5)
+                && findArgumentEq(argv, i, 5)
+            ) {
+                if (!argv[i][5]) {
+                    t_flags.tos = parseArgument(argv[i], argv[i + 1], &argv[i + 1], 255);
+                    argv[i + 1] = NULL;
+                }
+                else {
+                    t_flags.tos = parseArgument(argv[i], argv[i], &argv[i], 255);
+                    argv[i] = NULL;
+                }
+                //break ;
+            } else if(!ft_strncmp(argv[i], "--ttl", 5)
+                && findArgumentEq(argv, i, 5)
+            ) {
+                if (!argv[i][5]) {
+                    t_flags.ttl = parseArgument(argv[i], argv[i + 1], &argv[i + 1], 255);
+                    argv[i + 1] = NULL;
+                }
+                else {
+                    t_flags.ttl = parseArgument(argv[i], argv[i], &argv[i], 255);
+                    argv[i] = NULL;
+                }
+                //break ;
+            } else if ((!ft_strncmp(argv[i], "--preload", 9)
+                && findArgumentEq(argv, i, 9))) {
+                if (!argv[i][9]) {
+                    t_flags.preload = parsePreload(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
+                    argv[i + 1] = NULL;
+                }
+                else {
+                    t_flags.preload = parsePreload(argv[i], argv[i], &argv[i], 2147483647);
+                    argv[i] = NULL;
+                }
+                //break ;
+            } else if (!ft_strncmp(argv[i], "--help", 6)) {
+                t_flags.interrogation = TRUE;
+                    flagInterrogation();
+                    exit(0);
+            } else if (!ft_strncmp(argv[i], "--usage", 7)) {
+                    flagUsage();
+                    exit(0);
+            } else {
+                dprintf(2, "%s%s%c\n", "ping: unrecognized option \'", argv[i], '\'');
+                dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
+                exit(64);
             }
-            break ;
-        } else if ((!ft_strncmp(argv[i], "--preload", 9)
-            && findArgumentEq(&argv[i], 9))) {
-            if (!argv[i][9])
-                t_flags.preload = parsePreload(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
-            else {
-                t_flags.preload = parsePreload(argv[i], argv[i], &argv[i], 2147483647);
-            }
-            break ;
-        } else {
-            dprintf(2, "%s%s%c\n", "ping: unrecognized option \'", argv[i], '\'');
-            dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
-            exit(64);
         }
     }
 }
 
-static void    searchFlags(char *argv[]) {
+static void    searchFlags(char *argv[], int argc) {
     int j;
 
-    for (int i = 1; argv[i] != NULL; ++i) {
-        if (argv[i][0] == '-') {
+    for (int i = 1; i < argc; ++i) {
+        if (argv[i] && argv[i][0] == '-' && argv[i][1] != '-') {
             for (j = 1; argv[i][j] != '\0'; j++) {
                 if (argv[i][j] == 'v')
                     t_flags.v = TRUE;
@@ -309,28 +327,44 @@ static void    searchFlags(char *argv[]) {
                     flagInterrogation();
                     exit(0);
                 } else if (argv[i][j] == 'w') {
-                    if (findArgument(&argv[i]) == TRUE)
+                    if (findArgument(argv, i) == TRUE) {
                         t_flags.w = parseArgument("w", argv[i], &argv[i], 2147483647);
-                    else
+                        argv[i] = NULL;
+                    }
+                    else {
                         t_flags.w = parseArgument("w", argv[i + 1], &argv[i + 1], 2147483647);
+                        argv[i + 1] = NULL;
+                    }
                     break ;
                 } else if (argv[i][j] == 'T') {
-                    if (findArgument(&argv[i]) == TRUE)
+                    if (findArgument(argv, i) == TRUE) {
                         t_flags.tos = parseArgument("T", argv[i], &argv[i], 2147483647);
-                    else
+                        argv[i] = NULL;
+                    }
+                    else {
                         t_flags.tos = parseArgument("T", argv[i + 1], &argv[i + 1], 2147483647);
+                        argv[i + 1] = NULL;
+                    }
                     break ;
                 } else if (argv[i][j] == 'l') {
-                    if (findArgument(&argv[i]) == TRUE)
+                    if (findArgument(argv, i) == TRUE) {
                         t_flags.preload = parsePreload(argv[i], argv[i], &argv[i], 2147483647);
-                    else
+                        argv[i] = NULL;
+                    }
+                    else {
                         t_flags.preload = parsePreload(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
+                        argv[i + 1] = NULL;
+                    }
                     break ;
                 } else if (argv[i][j] == 'i') {
-                    if (findArgument(&argv[i]) == TRUE)
-                        t_flags.preload = parseArgumentI(argv[i], argv[i], &argv[i], 2147483647);
-                    else
-                        t_flags.preload = parseArgumentI(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
+                    if (findArgument(argv, i) == TRUE) {
+                        t_flags.interval = parseArgumentI(argv[i], argv[i], &argv[i], 2147483647);
+                        argv[i] = NULL;
+                    }
+                    else {
+                        t_flags.interval = parseArgumentI(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
+                        argv[i + 1] = NULL;
+                    }
                     break ;
                 }
                 else {
@@ -344,13 +378,12 @@ static void    searchFlags(char *argv[]) {
 }
 
 /*man getaddrinfo > man 5 services (0)*/
-static struct addrinfo *getIp(char *argv[], int *i) {
+static struct addrinfo *getIp(char *argv[], int argc, int *i) {
     struct addrinfo *list = 0, client;
-    //struct sockaddr_in *translate;
     int result = 0;
 
-    for (; argv[*i] != NULL; ++(*i)) {
-        if (*argv[*i] && argv[*i][0] != '-') {
+    for (; *i < argc; ++(*i)) {
+        if (argv[*i] && argv[*i][0] != '-') {
             ft_memset(&client, 0, sizeof(struct addrinfo));
             client.ai_family = AF_INET;
             client.ai_socktype = SOCK_RAW;
@@ -368,7 +401,7 @@ static struct addrinfo *getIp(char *argv[], int *i) {
     }
     if (t_flags.interrogation == FALSE && !list) {
         dprintf(2, "%s",
-            "ping: missing host operand\nTry 'ping -?' for more information.\n");
+            "ping: missing host operand\nTry 'ping --help' or 'ping --usage' for more information.\n");
         if (list)
             freeaddrinfo(list);
         exit(64);
@@ -383,7 +416,7 @@ static void    pingStart(int argc, char *argv[]) {
     if (signal(SIGINT, sigHandlerInt) == SIG_ERR)
         exitInet();
     for (; i < argc; ++i) {
-        listAddr = getIp(argv, &i);
+        listAddr = getIp(argv, argc, &i);
         fdSocket = openSocket();
         //next part ping here
         runIcmp();
@@ -393,49 +426,52 @@ static void    pingStart(int argc, char *argv[]) {
     }
 }
 
-void    findUnknowHost(char *argv[]) {
-    char *old = 0;
-
-    for (int i = 1; argv[i] != NULL; i++) {
-        if (argv[i][0] == '\0' && ft_strncmp(old, "-i", 2) != 0) {
-            dprintf(STDERR, "ping: %s\n", "unknown host");
-            exit(EXIT_FAILURE);
-        }
-        old = argv[i];
-    }
-}
-
 //ping [OPTIONS] host
 int main(int argc, char *argv[]) {
-    char **memArgv = NULL;
+    char    *cpyArgv[argc];
 
+    //copy argv since I will manipulate argv values
+    for (int i = 0; i < argc; i++)
+        cpyArgv[i] = argv[i];
     ft_memset(pingMemory, 0, sizeof(pingMemory));
     ft_memset(&roundTripGlobal, 0, sizeof(struct s_round_trip));
+    //init flags
     t_flags.v = FALSE;
     t_flags.interrogation = FALSE;
     t_flags.ttl = 60;
     t_flags.tos = 0;
     t_flags.w = 0;
     t_flags.preload = 0;
-    t_flags.interval = 0;
-    //init round trip time
+    t_flags.interval = -1.0f;
     if (getuid() != 0) {
         dprintf(2, "%s", "Please use root privileges.\n");
         return (EXIT_FAILURE);
     }
     if (argc < 2) {
-        dprintf(2, "%s", "ping: missing host operand\nTry 'ping -?' for more information.\n");
+        dprintf(2, "%s", "ping: missing host operand\nTry 'ping --help' or 'ping --usage' for more information.\n");
         exit(64);
     }
-    findUnknowHost(argv);
-    memArgv = argv;
-    //printf("argv: %s mem: %s\n", argv[1], memArgv[1]);
-    if (argv[1][1] != '-')
-        searchFlags(memArgv);
-    else
-        searchBigOption(memArgv);
-    //*(argv + 1) = memArgv;
-    //printf("argv: %s mem: %s\n", argv[1], memArgv[1]);
-    pingStart(argc, argv);
+    for (int i = 1; i < argc; i++) {
+        if (cpyArgv[i][0] == '-'
+            && cpyArgv[i][1] == '-'
+            && cpyArgv[i][2] == 'v') {
+            dprintf(2, "ping: option '--v' is ambiguous; possibilities: '--verbose' '--version'\n");
+            dprintf(2, "Try 'ping --help' or 'ping --usage' for more information.\n");
+            exit(64);
+        }
+        if (cpyArgv[i] && cpyArgv[i][0] == '-'
+            && cpyArgv[i][1] != '-') {
+            searchFlags(cpyArgv, argc);
+            break ;
+        }
+    }
+    for (int i = 1; i < argc; i++) {
+        if (cpyArgv[i] && cpyArgv[i][0] == '-'
+            && cpyArgv[i][1] == '-') {
+            searchBigOption(cpyArgv, argc);
+            break ;
+        }
+    }
+    pingStart(argc, cpyArgv);
     return (0);
 }
