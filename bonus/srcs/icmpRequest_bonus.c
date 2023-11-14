@@ -121,8 +121,8 @@ static void    sigHandlerAlrm(int sigNum) {
       //  t_flags.preload--;
     //Call another ping
     //if (!t_flags.preload)
-    if (t_flags.interval == -1)
-        alarm(1);
+    //if (t_flags.interval == -1)
+    //    alarm(1);
 }
 
 static void    displayPingHeader() {
@@ -231,17 +231,18 @@ void    runIcmp() {
     //    new.it_value.tv_sec, new.it_value.tv_usec;
     printf("ret:%d\n", setitimer(ITIMER_REAL, &new, &old));
     */
-    if (t_flags.interval < 0.0f) {
-        alarm(1);
-    } else {
+    //if (t_flags.interval < 0.0f) {
+    //    alarm(1);
+    //} else {
         struct itimerval new, old;
-        new.it_interval.tv_sec = t_flags.interval;
-        new.it_interval.tv_usec = 0;
-        new.it_value.tv_sec = t_flags.interval;
-        new.it_value.tv_usec = 0;
+        printf("t_flags.interval - (int)t_flags.interval: %f\n", t_flags.interval - (int)t_flags.interval);
+        new.it_interval.tv_sec = 1;//t_flags.interval;
+        new.it_interval.tv_usec = 0;//t_flags.interval - (int)t_flags.interval;
+        new.it_value.tv_sec = 1;//t_flags.interval;
+        new.it_value.tv_usec = 0;//(int)(t_flags.interval - (int)t_flags.interval);
         //    new.it_value.tv_sec, new.it_value.tv_usec;
-        printf("ret:%d\n", setitimer(ITIMER_REAL, &new, &old));
-    }
+        printf("ret:%d usec: %ld\n", setitimer(ITIMER_REAL, &new, &old), new.it_value.tv_usec);
+    //}
     while (1) {
         /*if (preloadExist == TRUE
             && t_flags.preload < roundTripGlobal.packetSend) {

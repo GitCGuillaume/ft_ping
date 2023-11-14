@@ -181,7 +181,6 @@ float    parseArgumentI(const char *cmd,
     const char *original, char **str,
     uint32_t maxValue) {
     float   result = 0.0f;
-    //float   fractional = 0.0f;
     uint32_t    i = 0;
 
     requireArgument(cmd, original);
@@ -192,9 +191,10 @@ float    parseArgumentI(const char *cmd,
     }
     i = 0;
     if (!str[0][i]) {
-        return (0);
+        return (0.0f);
     }
-    for (; *str[0] != 0; (*str)++) {
+    //for (; *str[0] != 0; (*str)++) {
+    while (*str[0] && *str[0] != ',') {
         if (ft_isdigit(*str[0])) {
             result = result * 10 + *str[0] - '0';
         } else {
@@ -203,11 +203,36 @@ float    parseArgumentI(const char *cmd,
             dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
             exit(1);
         }
+        printf("res: %f\n", result);
         if (result > maxValue) {
             dprintf(2, "ping: option value too big: %s\n", original);
             dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
             exit(1);
         }
+        (*str)++;
+    }
+    uint32_t dividend = 10;
+    while (*str[0]) {
+        if (*str[0] == ',')
+            (*str)++;
+        if (!*str[0])
+            break ;
+        if (ft_isdigit(*str[0])) {
+            result = result + (float)(*str[0] - '0') / dividend;
+            dividend *= 10;
+        } else {
+            dprintf(2, "ping: invalid value (`%s\' near `%s\')\n",
+                original, str[0]);
+            dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
+            exit(1);
+        }
+        //printf("res: %f\n", result);
+        /*if (result > maxValue) {
+            dprintf(2, "ping: option value too big: %s\n", original);
+            dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
+            exit(1);
+        }*/
+        (*str)++;
     }
     return (result);
 }
