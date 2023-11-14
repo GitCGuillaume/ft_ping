@@ -152,6 +152,6 @@ void    runIcmp() {
     alarm(1);
     while (1) {
         icmpGetResponse();
-        usleep(50);
+        usleep(1);
     }
 }

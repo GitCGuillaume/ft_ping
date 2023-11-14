@@ -235,13 +235,25 @@ void    runIcmp() {
     //    alarm(1);
     //} else {
         struct itimerval new, old;
-        printf("t_flags.interval - (int)t_flags.interval: %f\n", t_flags.interval - (int)t_flags.interval);
-        new.it_interval.tv_sec = 1;//t_flags.interval;
-        new.it_interval.tv_usec = 0;//t_flags.interval - (int)t_flags.interval;
-        new.it_value.tv_sec = 1;//t_flags.interval;
-        new.it_value.tv_usec = 0;//(int)(t_flags.interval - (int)t_flags.interval);
+        float it_usec = (t_flags.interval - (int)t_flags.interval) * t_flags.dividend;
+        float it_sec = t_flags.interval - (t_flags.interval - (long)t_flags.interval);
+       
+        printf("interval: %f\n", t_flags.interval);
+        printf("sec: %f\n", it_sec);
+        printf("usec: %f\n", (it_sec / 1000) + (it_usec * 1000));
+        //exit(1);
+        new.it_interval.tv_sec = 0;
+        new.it_interval.tv_usec = (it_sec / 1000) + (it_usec * 1000);//t_flags.interval - (int)t_flags.interval;
+        new.it_value.tv_sec = 0;
+        new.it_value.tv_usec = (it_sec / 1000) + (it_usec * 1000);//(int)(t_flags.interval - (int)t_flags.interval);
         //    new.it_value.tv_sec, new.it_value.tv_usec;
-        printf("ret:%d usec: %ld\n", setitimer(ITIMER_REAL, &new, &old), new.it_value.tv_usec);
+        if (setitimer(ITIMER_REAL, &new, &old) != 0) {
+            freeaddrinfo(listAddr);
+            dprintf(2, "ping: timer interval: %s\n", strerror(errno));
+            if (fdSocket >= 0)
+                close(fdSocket);
+            exit(1);
+        }
     //}
     while (1) {
         /*if (preloadExist == TRUE

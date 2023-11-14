@@ -211,15 +211,14 @@ float    parseArgumentI(const char *cmd,
         }
         (*str)++;
     }
-    uint32_t dividend = 10;
     while (*str[0]) {
         if (*str[0] == ',')
             (*str)++;
         if (!*str[0])
             break ;
         if (ft_isdigit(*str[0])) {
-            result = result + (float)(*str[0] - '0') / dividend;
-            dividend *= 10;
+            t_flags.dividend *= 10;
+            result = result + (float)(*str[0] - '0') / t_flags.dividend;
         } else {
             dprintf(2, "ping: invalid value (`%s\' near `%s\')\n",
                 original, str[0]);
@@ -234,6 +233,7 @@ float    parseArgumentI(const char *cmd,
         }*/
         (*str)++;
     }
+    printf("rr:%f\n", result);
     return (result);
 }
 
@@ -467,6 +467,7 @@ int main(int argc, char *argv[]) {
     t_flags.tos = 0;
     t_flags.w = 0;
     t_flags.preload = 0;
+    t_flags.dividend = 1;
     t_flags.interval = -1.0f;
     if (getuid() != 0) {
         dprintf(2, "%s", "Please use root privileges.\n");
