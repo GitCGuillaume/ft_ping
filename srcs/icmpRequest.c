@@ -86,7 +86,7 @@ static void    sigHandlerAlrm(int sigNum) {
         exit(1);
     }
     //Call another ping
-    alarm(1);
+    printf("%u\n", alarm(1));
 }
 
 static void    displayPingHeader() {

@@ -21,6 +21,7 @@
 #define ICMP 1
 #define STDERR 2
 #define FQDN_MAX 255
+#define CONV_SEC_TO_MICR 1000000
 
 struct s_flags {
     char    v;

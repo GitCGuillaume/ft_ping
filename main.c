@@ -36,7 +36,8 @@ static void    sigHandlerInt(int sigNum) {
     if (sigNum != SIGINT)
         return ;
     if (!listAddr) {
-        close(fdSocket);
+        if (fdSocket >= 0)
+            close(fdSocket);
         exit(1);
     }
     if (fdSocket >= 0)

@@ -18,13 +18,22 @@ static void    icmpGetResponse() {
     msg[0].iov_len = sizeof(buff2);
     msgResponse.msg_iov = msg;
     msgResponse.msg_iovlen = 1;
-    result = recvmsg(fdSocket, &msgResponse, 0);
-    if (result < 0) {
-        freeaddrinfo(listAddr);
-        dprintf(2, "%s\n", strerror(errno));
-        if (fdSocket >= 0)
-            close(fdSocket);
-        exit(1);
+    if (fdSocket != -1) {
+        result = recvmsg(fdSocket, &msgResponse, 0);
+        if (result < 0) {
+            alarm(0);
+            //if (listAddr)
+            //    freeaddrinfo(listAddr);
+            //listAddr = NULL;
+            printf("recv\n");
+            dprintf(2, "%s\n", strerror(errno));
+            //if (fdSocket >= 0)
+            //    close(fdSocket);
+            //exit(1);
+            return ;
+        }
+    } else {
+        return ;
     }
     if (gettimeofday(&tvA, 0) < 0)
         exitInet();
@@ -105,18 +114,26 @@ static void    sigHandlerAlrm(int sigNum) {
     //    t_flags.preload--;
     //if (0 < t_flags.preload)
     //    t_flags.preload--;
-    result = sendto(fdSocket, buff,
+    if (fdSocket != -1) {
+        result = sendto(fdSocket, buff,
         ECHO_REQUEST_SIZE, 0,
         listAddr->ai_addr, listAddr->ai_addrlen);
-    //pr.4intf("sent\n");
-    if (result < 0) {
-        //printf("falaid2: %d\n", 0);
-        freeaddrinfo(listAddr);
-        dprintf(2, "ping: sending packet: %s\n", strerror(errno));
-        if (fdSocket >= 0)
-            close(fdSocket);
-        exit(1);
+        //pr.4intf("sent\n");
+        if (result < 0) {
+            alarm(0);
+            //printf("falaid2: %d\n", 0);
+            //if (listAddr)
+            //    freeaddrinfo(listAddr);
+            //listAddr = NULL;
+            printf("send\n");
+            printf("fd: %d\nerrno:%d\n", fdSocket, errno);
+            dprintf(2, "ping: sending packet: %s\n", strerror(errno));
+            //if (fdSocket >= 0)
+            //    close(fdSocket);
+            //exit(1);
+        }
     }
+    
     //if (t_flags.preload)
       //  t_flags.preload--;
     //Call another ping
@@ -198,15 +215,18 @@ void    runIcmp() {
         //inc nb packets and send
         roundTripGlobal.packetSend++;
         //roundTripGlobal.packetReq++;
-        result = sendto(fdSocket, buff,
+        if (fdSocket != -1) {
+            result = sendto(fdSocket, buff,
             ECHO_REQUEST_SIZE, 0,
             listAddr->ai_addr, listAddr->ai_addrlen);
-        if (result < 0) {
-            freeaddrinfo(listAddr);
-            dprintf(2, "ping: sending packet: %s\n", strerror(errno));
-            if (fdSocket >= 0)
-                close(fdSocket);
-            exit(1);
+            if (result < 0) {
+                freeaddrinfo(listAddr);
+                listAddr = NULL;
+                dprintf(2, "ping: sending packet: %s\n", strerror(errno));
+                if (fdSocket >= 0)
+                    close(fdSocket);
+                exit(1);
+            }
         }
         //icmpGetResponse();
     }
@@ -240,19 +260,26 @@ void    runIcmp() {
        
         printf("interval: %f\n", t_flags.interval);
         printf("sec: %f\n", it_sec);
-        printf("usec: %f\n", (it_sec / 1000) + (it_usec * 1000));
+        printf("divid: %d\n", t_flags.dividend);
+        printf("usec: %f\n", (it_usec));
+        //printf("usec: %f\n", (it_usec * CONV_SEC_TO_MICR) / t_flags.dividend);
         //exit(1);
-        new.it_interval.tv_sec = 0;
-        new.it_interval.tv_usec = (it_sec / 1000) + (it_usec * 1000);//t_flags.interval - (int)t_flags.interval;
-        new.it_value.tv_sec = 0;
-        new.it_value.tv_usec = (it_sec / 1000) + (it_usec * 1000);//(int)(t_flags.interval - (int)t_flags.interval);
+        new.it_interval.tv_sec = (long)it_sec;
+        new.it_interval.tv_usec = (long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//t_flags.interval - (int)t_flags.interval;
+        new.it_value.tv_sec = (long)it_sec;
+        new.it_value.tv_usec = (long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//(int)(t_flags.interval - (int)t_flags.interval);
+        printf("usec: %ld\n", new.it_interval.tv_usec);
+        //exit(1);
         //    new.it_value.tv_sec, new.it_value.tv_usec;
         if (setitimer(ITIMER_REAL, &new, &old) != 0) {
-            freeaddrinfo(listAddr);
+            alarm(0);
+            //if (listAddr)
+            //    freeaddrinfo(listAddr);
+            listAddr = NULL;
             dprintf(2, "ping: timer interval: %s\n", strerror(errno));
-            if (fdSocket >= 0)
-                close(fdSocket);
-            exit(1);
+            //if (fdSocket >= 0)
+            //    close(fdSocket);
+            //exit(1);
         }
     //}
     while (1) {
@@ -267,7 +294,13 @@ void    runIcmp() {
             printf("end\n");
             printf("ret:%d\n", setitimer(ITIMER_REAL, &new, &old));
         }*/
+        if (errno) {
+            printf("pouette\n");
+            alarm(0);
+            strerror(errno);
+            exitInet();
+        }
         icmpGetResponse();
-        usleep(1);
+       // usleep(1);
     }
 }

@@ -36,12 +36,20 @@ void    sigHandlerInt(int sigNum) {
 
     if (sigNum != SIGINT)
         return ;
+    alarm(0);
+    signal(SIGALRM, SIG_DFL);
+    printf("errno: %d\n", errno);
     if (!listAddr) {
-        close(fdSocket);
+        if (fdSocket != -1) {
+            close(fdSocket);
+            fdSocket = -1;
+        }
         exit(1);
     }
-    if (fdSocket >= 0)
+    if (fdSocket >= 0) {
         close(fdSocket);
+        fdSocket = -1;
+    }
     if (roundTripGlobal.number != 0) {
         average = roundTripGlobal.sum / roundTripGlobal.number;
         stdDev = ftSqrt((roundTripGlobal.squareSum / roundTripGlobal.number) - (average * average));
