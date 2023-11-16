@@ -26,6 +26,7 @@
 struct s_flags {
     char    v;
     char    interrogation;
+    char    flagI;
     uint32_t    tos;
     uint32_t    ttl;
     uint32_t    w;

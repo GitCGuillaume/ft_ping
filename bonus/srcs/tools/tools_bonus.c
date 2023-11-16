@@ -24,8 +24,11 @@ void    signalEnd(void) {
     double  stdDev = 0.0f;
 
     alarm(0);
-    signal(SIGALRM, SIG_DFL);
-    printf("errno: %d\n", errno);
+    
+    //while(1){
+    //    printf("errno: %d\n", errno);
+    //    if (errno) { exit(1);}
+    //};
     if (!listAddr) {
         if (fdSocket != -1) {
             close(fdSocket);
@@ -73,8 +76,10 @@ void    exitInet(void) {
     if  (listAddr) {
         freeaddrinfo(listAddr);
     }
+    listAddr = NULL;
     if (fdSocket >= 0)
         close(fdSocket);
+    fdSocket = -1;
     exit(1);
 }
 

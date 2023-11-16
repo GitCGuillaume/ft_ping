@@ -7,6 +7,7 @@ struct  addrinfo *listAddr = 0;//need to be cleaned in CTRL+C + alarm(function i
 struct s_round_trip  roundTripGlobal;//mainly for signal function...
 struct s_flags t_flags;
 int fdSocket;//must be also closed on CTRL+C etc
+//https://www.gnu.org/software/libc/manual/html_node/Atomic-Types.html
 volatile sig_atomic_t   end = FALSE;
 
 /*
@@ -16,6 +17,8 @@ volatile sig_atomic_t   end = FALSE;
 void    sigHandlerInt(int sigNum) {
     if (sigNum != SIGINT)
         return ;
+    //close(fdSocket);
+    
     //alarm(0);
     //signal(SIGALRM, SIG_DFL);
     end = TRUE;
@@ -44,7 +47,7 @@ static int openSocket() {
     }
     while (mem)
     {
-        fd = socket(mem->ai_family, mem->ai_socktype, mem->ai_protocol);
+        fd = socket(mem->ai_family, mem->ai_socktype | SOCK_NONBLOCK, mem->ai_protocol);
         if (fd < 0) {
             dprintf(2, "%s", "Couldn't open socket.\n");
             freeaddrinfo(listAddr);
@@ -182,6 +185,7 @@ float    parseArgumentI(const char *cmd,
         (*str)++;
     }
     printf("rr:%f\n", result);
+    t_flags.flagI = TRUE;
     return (result);
 }
 
@@ -412,12 +416,13 @@ int main(int argc, char *argv[]) {
     //init flags
     t_flags.v = FALSE;
     t_flags.interrogation = FALSE;
+    t_flags.flagI = FALSE;
     t_flags.ttl = 60;
     t_flags.tos = 0;
     t_flags.w = 0;
     t_flags.preload = 0;
     t_flags.dividend = 1;
-    t_flags.interval = -1.0f;
+    t_flags.interval = 1.0f;
     if (getuid() != 0) {
         dprintf(2, "%s", "Please use root privileges.\n");
         return (EXIT_FAILURE);
