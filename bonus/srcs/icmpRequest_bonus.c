@@ -282,7 +282,7 @@ void    runIcmp() {
             //exit(1);
         }
     //}
-    while (1) {
+    while (!end) {
         /*if (preloadExist == TRUE
             && t_flags.preload < roundTripGlobal.packetSend) {
             struct itimerval new, old;
@@ -294,6 +294,7 @@ void    runIcmp() {
             printf("end\n");
             printf("ret:%d\n", setitimer(ITIMER_REAL, &new, &old));
         }*/
+        //printf("plop\n");
         if (errno) {
             printf("pouette\n");
             alarm(0);
@@ -303,4 +304,5 @@ void    runIcmp() {
         icmpGetResponse();
        // usleep(1);
     }
+    signalEnd();
 }

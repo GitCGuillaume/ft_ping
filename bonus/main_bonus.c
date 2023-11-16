@@ -7,79 +7,19 @@ struct  addrinfo *listAddr = 0;//need to be cleaned in CTRL+C + alarm(function i
 struct s_round_trip  roundTripGlobal;//mainly for signal function...
 struct s_flags t_flags;
 int fdSocket;//must be also closed on CTRL+C etc
-
-/*
-    Heron's method
-    https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Heron's_method
-*/
-static double   ftSqrt(double num) {
-    //x is whatever value near square root
-    double x = num;
-    double old = 0.000000;
-
-    if (num < 0 || num == 0)
-        return (0.0f);
-    while (x != old){
-        old = x;
-        x = (x + num / x) / 2;
-    }
-    return (x);
-}
+volatile sig_atomic_t   end = FALSE;
 
 /*
     https://en.wikipedia.org/wiki/Standard_deviation
     https://fr.wikipedia.org/wiki/Variance_(mathématiques)
 */
 void    sigHandlerInt(int sigNum) {
-    double  average;
-    double  stdDev = 0.0f;
-
     if (sigNum != SIGINT)
         return ;
-    alarm(0);
-    signal(SIGALRM, SIG_DFL);
-    printf("errno: %d\n", errno);
-    if (!listAddr) {
-        if (fdSocket != -1) {
-            close(fdSocket);
-            fdSocket = -1;
-        }
-        exit(1);
-    }
-    if (fdSocket >= 0) {
-        close(fdSocket);
-        fdSocket = -1;
-    }
-    if (roundTripGlobal.number != 0) {
-        average = roundTripGlobal.sum / roundTripGlobal.number;
-        stdDev = ftSqrt((roundTripGlobal.squareSum / roundTripGlobal.number) - (average * average));
-    }
-    printf("--- %s ping statistics ---\n", listAddr->ai_canonname);
-    printf("%u packets transmitted, %u packets received",
-        roundTripGlobal.packetSend,
-        roundTripGlobal.packetReceive);
-    if (roundTripGlobal.packetDuplicate != 0)
-        printf(", +%u duplicates", roundTripGlobal.packetDuplicate);
-    if (roundTripGlobal.packetReceive > roundTripGlobal.packetSend)
-        printf(", -- somebody is printing forged packets!\n");
-    else if (roundTripGlobal.packetSend != 0) {
-        //inetutils's ping command seem to not display packet loss
-        double loseRatePct = (((double)roundTripGlobal.packetSend - (
-            double)roundTripGlobal.packetReceive) / (double)roundTripGlobal.packetSend)
-            * 100.000000;
-        printf(", %d%% packet loss\n", (int)loseRatePct);
-    }
-    if  (listAddr)
-        freeaddrinfo(listAddr);
-    if (roundTripGlobal.number != 0) {
-        printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f\n",
-        roundTripGlobal.rtt[0],
-        average,
-        roundTripGlobal.rtt[1],
-        stdDev);
-        exit(0);
-    }
-    exit(1);
+    //alarm(0);
+    //signal(SIGALRM, SIG_DFL);
+    end = TRUE;
+    //printf("call\n");
 }
 
 /* code /usr/include/x86_64-linux-gnu/bits/in.h
@@ -453,6 +393,7 @@ static void    pingStart(int argc, char *argv[]) {
         fdSocket = openSocket();
         //next part ping here
         runIcmp();
+        printf("continue?\n");
         freeaddrinfo(listAddr);
         if (fdSocket >= 0)
             close(fdSocket);

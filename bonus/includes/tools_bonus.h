@@ -55,6 +55,7 @@ struct s_round_trip {
     //uint32_t    packetReq;
 };
 
+void    signalEnd(void);
 void    sigHandlerInt(int sigNum);
 void    exitInet(void);
 void    exitTimer(int code);
@@ -71,4 +72,5 @@ extern struct  addrinfo *listAddr;
 /*Store pings for recvMsg*/
 extern struct s_ping_memory    pingMemory[65536];
 extern struct s_round_trip  roundTripGlobal;
+extern volatile sig_atomic_t   end;
 #endif
