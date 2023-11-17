@@ -65,7 +65,7 @@ static void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
     ping->dup = TRUE;
 }
 
-static void    icmpReponse(struct iphdr *ip, struct icmphdr *icmp,
+static struct timeval *icmpReponse(struct iphdr *ip, struct icmphdr *icmp,
     ssize_t recv, struct timeval *tvA,
     char *buff) {
     struct timeval *tvB = NULL;
@@ -88,7 +88,7 @@ static void    icmpReponse(struct iphdr *ip, struct icmphdr *icmp,
         printf("%lu bytes from %s: ", recv, ntop);
         ping = &pingMemory[icmp->un.echo.sequence];
         if (!ping)
-            return ;
+            return (NULL);
         //check if payload has some issues
         buff += sizeof(struct icmphdr);
         tvB = (struct timeval *)buff;
@@ -96,11 +96,13 @@ static void    icmpReponse(struct iphdr *ip, struct icmphdr *icmp,
         recv -= sizeof(struct timeval) + sizeof(struct icmphdr);
         for (int i = 0; i < recv; i++) {
             if (buff[i] != i)
-                return ;
+                return (NULL);
         }
         displayResponse(ip, icmp, ping, tvA, tvB);
+        return (tvB);
     }
     printf("\n");
+    return (NULL);
 }
 
 /*
@@ -139,6 +141,28 @@ void    icmpInitResponse(struct msghdr *msg, ssize_t recv,
         if (initialId != idRequest)
             return ;
     }
-    icmpReponse(&ip, &icmp, recv,
+    struct timeval *tvB = icmpReponse(&ip, &icmp, recv,
         tvA, buff);
+    if (!tvB)
+        return ;
+    if (icmp.type != 8 && !t_flags.preload) {
+        //while (!end && !interrupt) {}
+            //usleep(1);
+        //interrupt = FALSE;
+        struct timeval timeout;
+        //sleep(3);
+        gettimeofday(&timeout, NULL);
+        char stop = FALSE;
+        while (stop == FALSE) {
+            printf("\nsec: %ld usec:%ld\n", tvB->tv_sec, tvB->tv_usec);
+            printf("timeout sec: %ld usec:%ld\n", timeout.tv_sec, timeout.tv_usec);
+            ssize_t A = ((timeout.tv_sec - tvB->tv_sec)) + ((timeout.tv_usec - tvB->tv_usec));
+            printf("A:%ld\n", A);
+            exit(1);
+        }
+    } else {
+        t_flags.preload--;
+    }
+    //printf("p:%d\n", t_flags.preload);
+        //usleep(1000000);
 }

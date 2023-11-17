@@ -9,6 +9,7 @@ struct s_flags t_flags;
 int fdSocket;//must be also closed on CTRL+C etc
 //https://www.gnu.org/software/libc/manual/html_node/Atomic-Types.html
 volatile sig_atomic_t   end = FALSE;
+volatile sig_atomic_t   interrupt = FALSE;
 
 /*
     https://en.wikipedia.org/wiki/Standard_deviation
@@ -17,12 +18,7 @@ volatile sig_atomic_t   end = FALSE;
 void    sigHandlerInt(int sigNum) {
     if (sigNum != SIGINT)
         return ;
-    //close(fdSocket);
-    
-    //alarm(0);
-    //signal(SIGALRM, SIG_DFL);
     end = TRUE;
-    //printf("call\n");
 }
 
 /* code /usr/include/x86_64-linux-gnu/bits/in.h

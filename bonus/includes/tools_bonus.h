@@ -74,4 +74,5 @@ extern struct  addrinfo *listAddr;
 extern struct s_ping_memory    pingMemory[65536];
 extern struct s_round_trip  roundTripGlobal;
 extern volatile sig_atomic_t   end;
+extern volatile sig_atomic_t   interrupt;
 #endif
