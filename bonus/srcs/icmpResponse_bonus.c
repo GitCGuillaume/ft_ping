@@ -99,10 +99,9 @@ static struct timeval *icmpReponse(struct iphdr *ip, struct icmphdr *icmp,
                 return (NULL);
         }
         displayResponse(ip, icmp, ping, tvA, tvB);
-        return (tvB);
     }
     printf("\n");
-    return (NULL);
+    return (tvB);
 }
 
 /*
@@ -118,51 +117,58 @@ void    icmpInitResponse(struct msghdr *msg, ssize_t recv,
     if (!msg)
         exitInet();
     struct iovec *iov = msg->msg_iov;
-    struct iphdr    ip;
+    struct iphdr    *ip = NULL;
     struct icmphdr  icmp;
     char *buff = iov->iov_base;
     struct s_ping_memory *ping = 0;
 
-    ft_memset(&ip, 0, sizeof(ip));
-    ft_memset(&icmp, 0, sizeof(icmp));
+    //ft_memset(&ip, 0, sizeof(ip));
+    //ft_memset(&icmp, 0, sizeof(icmp));
     /* Get IPv4 from buffer  */
-    parseIp(&ip, buff);
+    //parseIp(&ip, buff);
+    ip = (struct iphdr *)buff;
     buff += 20;
     /* Get Icmp from buffer */
     parseIcmp(&icmp, buff);
     if (icmp.type > 18 || icmp.type == 8)
-        return ;
+        return ;//(RELOOP);
     if (icmp.type == 0 && icmp.code == 0) {
         ping = &pingMemory[icmp.un.echo.sequence];
         if (!ping)
-            return ;
+            return ;//(RELOOP);
         const uint16_t initialId = convertEndianess(pingMemory[0].icmp.un.echo.id);
         const uint16_t idRequest = icmp.un.echo.id;
         if (initialId != idRequest)
-            return ;
+            return ;//(RELOOP);
     }
-    struct timeval *tvB = icmpReponse(&ip, &icmp, recv,
+    struct timeval *tvB = icmpReponse(ip, &icmp, recv,
         tvA, buff);
     if (!tvB)
-        return ;
-    if (icmp.type != 8 && !t_flags.preload) {
+        return ;//(RELOOP);
+    if (icmp.type != 8) {// && !t_flags.preload) {
         //while (!end && !interrupt) {}
             //usleep(1);
         //interrupt = FALSE;
-        struct timeval timeout;
-        //sleep(3);
-        gettimeofday(&timeout, NULL);
-        char stop = FALSE;
-        while (stop == FALSE) {
-            printf("\nsec: %ld usec:%ld\n", tvB->tv_sec, tvB->tv_usec);
-            printf("timeout sec: %ld usec:%ld\n", timeout.tv_sec, timeout.tv_usec);
-            ssize_t A = ((timeout.tv_sec - tvB->tv_sec)) + ((timeout.tv_usec - tvB->tv_usec));
-            printf("A:%ld\n", A);
-            exit(1);
+        //printf("pre:%d\n", t_flags.preload);
+        --t_flags.preload;
+        if (t_flags.preload != -1) {
+            return ;//(RELOOP);
         }
-    } else {
-        t_flags.preload--;
-    }
+        t_flags.preload = 0;
+        /*struct timeval timeout;
+        //usleep(1000000);
+        gettimeofday(&timeout, NULL);
+        ssize_t time = ((timeout.tv_sec - tvB->tv_sec) * 1000000)
+            + ((timeout.tv_usec - tvB->tv_usec));
+        while (!end && !interrupt && time < t_flags.time) {
+            gettimeofday(&timeout, NULL);
+            time = ((timeout.tv_sec - tvB->tv_sec) * 1000000)
+                + ((timeout.tv_usec - tvB->tv_usec));
+        }*/
+    }// else {
+    //    t_flags.preload--;
+    //}
+    return ;//(TRUE);
     //printf("p:%d\n", t_flags.preload);
         //usleep(1000000);
 }

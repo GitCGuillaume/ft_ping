@@ -22,7 +22,6 @@ static double   ftSqrt(double num) {
 void    signalEnd(void) {
     double  average;
     double  stdDev = 0.0f;
-
     alarm(0);
     
     //while(1){
@@ -81,15 +80,6 @@ void    exitInet(void) {
         close(fdSocket);
     fdSocket = -1;
     exit(1);
-}
-
-void    exitTimer(int code) {
-    if  (listAddr) {
-        freeaddrinfo(listAddr);
-    }
-    if (fdSocket >= 0)
-        close(fdSocket);
-    exit(code);
 }
 
 void    timerFlagExit(struct timeval *tvB, struct timeval cpyGlobal) {

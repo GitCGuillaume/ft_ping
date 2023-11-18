@@ -17,6 +17,7 @@
 
 #define TRUE 1
 #define FALSE 0
+#define RELOOP 2
 #define NONE 20
 #define ICMP 1
 #define STDERR 2
@@ -30,8 +31,9 @@ struct s_flags {
     uint32_t    tos;
     uint32_t    ttl;
     uint32_t    w;
-    uint32_t    preload;
-    uint32_t dividend;
+    ssize_t    preload;
+    uint32_t    dividend;
+    //ssize_t time;    
     float    interval;
 };
 
@@ -59,7 +61,6 @@ struct s_round_trip {
 void    signalEnd(void);
 void    sigHandlerInt(int sigNum);
 void    exitInet(void);
-void    exitTimer(int code);
 void    timerFlagExit(struct timeval *tvB, struct timeval cpyGlobal);
 void    bitMask(uint16_t *addr, uint16_t mask, char *buff, int nb, int jump);
 void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump);

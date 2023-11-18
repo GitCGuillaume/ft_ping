@@ -4,7 +4,7 @@
 static struct timeval gTimer;
 
 /* Get request response */
-static int    icmpGetResponse() {
+static void    icmpGetResponse() {
     char buff2[ECHO_REPLY_SIZE];
     struct msghdr msgResponse;
     struct iovec msg[1];
@@ -13,7 +13,7 @@ static int    icmpGetResponse() {
     //int resultAlrm = FALSE;
     //init response
     ft_memset(&msgResponse, 0, sizeof(struct msghdr));
-    ft_memset(buff2, 0, ECHO_REPLY_SIZE);
+    //ft_memset(buff2, 0, ECHO_REPLY_SIZE);
     msg[0].iov_base = buff2;
     msg[0].iov_len = sizeof(buff2);
     msgResponse.msg_iov = msg;
@@ -41,12 +41,14 @@ static int    icmpGetResponse() {
         //printf("res:%d errno:%d\n", result, errno);
         //if (t_flags.flagI == FALSE) {
             //usleep(1);
-            //errno = cpyErrno;
+            //errno = cpyErrno;if (sigNum != SIGALRM)
+       // return ;
         //}
     }
-    /*if (end || (result == -1 && interrupt == TRUE)) {
-        return (FALSE);
-    }*/
+    if (end || (result == -1 && interrupt == TRUE)) {
+        t_flags.preload = 0;
+        return ;//(FALSE);
+    }
     //printf("result:%d\n", result);
     errno = cpyErrno;
     //printf("result: %d\n", resultAlrm);
@@ -59,7 +61,7 @@ static int    icmpGetResponse() {
     //echo reply is 64 like a standard reply from the ping inetutils2.0
     icmpInitResponse(&msgResponse, result - sizeof(struct iphdr), &tvA);
     //printf("sleep:%d\n", usleep(1000000));
-    return (TRUE);
+    //return (TRUE);
 }
 
 static void    initPing(struct s_ping_memory *ping, int cpyI) {
@@ -89,12 +91,13 @@ static void    fillBuffer(char *buff, struct s_ping_memory *ping,
 
 /* send ping using signal alarm */
 static void    sigHandlerAlrm(int sigNum) {
+    if (sigNum != SIGALRM)
+        return ;
     interrupt = TRUE;
     return ;
     int cpyI = roundTripGlobal.packetSend % 65536;
 
-    if (sigNum != SIGALRM)
-        return ;
+    
     if (!listAddr)
         exitInet();
     struct timeval tvB;
@@ -226,6 +229,8 @@ void    runIcmp() {
         new.it_interval.tv_sec = 1;
         new.it_value.tv_sec = 1;
     }
+    //t_flags.time = ((new.it_interval.tv_sec) * 1000000)
+    //    + (new.it_interval.tv_usec);
     //printf("usec: %ld\n", new.it_interval.tv_usec);
     //exit(1);
     //    new.it_value.tv_sec, new.it_value.tv_usec;
@@ -253,16 +258,19 @@ void    runIcmp() {
     while (!end) {
     //if (interrupt == TRUE) {
         for (uint32_t preloadI = 0; preloadI <= t_flags.preload; ++preloadI) {
-            //printf("ta mère\n");
+//            if (end)
+  //              break ;
             //if (USHRT_MAX < roundTripGlobal.packetReq)
             //    roundTripGlobal.packetReq = 0;
             cpyI = roundTripGlobal.packetSend % 65536;
-            if (cpyI == 65535)
+            if (cpyI == 0)
                 ft_memset(pingMemory, 0, sizeof(pingMemory));
             initPing(&pingMemory[cpyI], cpyI);
             if (gettimeofday(&tvB, 0) < 0) {
                 exitInet();
             }
+            if (t_flags.w)
+                timerFlagExit(&tvB, gTimer);
             fillBuffer(buff, &pingMemory[cpyI], &tvB);
             //inc nb packets and send
             roundTripGlobal.packetSend++;
@@ -320,15 +328,9 @@ void    runIcmp() {
             printf("ret:%d\n", setitimer(ITIMER_REAL, &new, &old));
         }*/
         //printf("plop\n");
-        if (t_flags.preload) {
-            while (t_flags.preload && !end) {
-                //printf("p:%d\n", t_flags.preload);
-                icmpGetResponse();
-            }
-            //usleep(1);
-        } else
+        while (!end && !interrupt) {
             icmpGetResponse();
-        interrupt = FALSE;
+        }
     }
     if (end != TRUE) {
         alarm(0);
