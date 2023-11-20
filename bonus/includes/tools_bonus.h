@@ -1,6 +1,7 @@
 #ifndef TOOLS_BONUS_H
 # define TOOLS_BONUS_H
 
+#include <math.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -76,4 +77,5 @@ extern struct s_ping_memory    pingMemory[65536];
 extern struct s_round_trip  roundTripGlobal;
 extern volatile sig_atomic_t   end;
 extern volatile sig_atomic_t   interrupt;
+extern volatile sig_atomic_t nb;
 #endif

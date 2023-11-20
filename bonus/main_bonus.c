@@ -10,7 +10,7 @@ int fdSocket;//must be also closed on CTRL+C etc
 //https://www.gnu.org/software/libc/manual/html_node/Atomic-Types.html
 volatile sig_atomic_t   end = FALSE;
 volatile sig_atomic_t   interrupt = FALSE;
-
+volatile sig_atomic_t nb = 0;//a delete
 /*
     https://en.wikipedia.org/wiki/Standard_deviation
     https://fr.wikipedia.org/wiki/Variance_(mathématiques)
@@ -150,7 +150,6 @@ float    parseArgumentI(const char *cmd,
             dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
             exit(1);
         }
-        printf("res: %f\n", result);
         if (result > maxValue) {
             dprintf(2, "ping: option value too big: %s\n", original);
             dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
@@ -180,7 +179,6 @@ float    parseArgumentI(const char *cmd,
         }*/
         (*str)++;
     }
-    printf("rr:%f\n", result);
     t_flags.flagI = TRUE;
     return (result);
 }

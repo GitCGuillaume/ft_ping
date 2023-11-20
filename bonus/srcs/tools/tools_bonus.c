@@ -23,7 +23,7 @@ void    signalEnd(void) {
     double  average;
     double  stdDev = 0.0f;
     alarm(0);
-    
+    printf("nb:%d\n", nb);
     //while(1){
     //    printf("errno: %d\n", errno);
     //    if (errno) { exit(1);}

@@ -16,7 +16,7 @@ FLAGS = -Wall -Wextra -Werror
 
 #INCLUDES = -Ibonus/includes -Isrcs/libft
 
-INCLUDES_BONUS = -Ibonus/includes -Isrcs/libft #-g3 -fsanitize=address
+INCLUDES_BONUS = -Ibonus/includes -Isrcs/libft#-g3 -fsanitize=address
 
 O_DIR_BONUS = objs_bonus
 

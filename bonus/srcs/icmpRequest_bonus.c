@@ -3,6 +3,8 @@
 
 static struct timeval gTimer;
 
+
+
 /* Get request response */
 static void    icmpGetResponse() {
     char buff2[ECHO_REPLY_SIZE];
@@ -10,6 +12,15 @@ static void    icmpGetResponse() {
     struct iovec msg[1];
     struct timeval tvA;
     int result = -1;
+
+    /*struct timeval test;
+    gettimeofday(&test, NULL);
+    double  milliSeconds;
+    time_t seconds = test.tv_sec - gTimer.tv_sec;
+    suseconds_t microSeconds = test.tv_usec - gTimer.tv_usec;
+    milliSeconds = (seconds * 1000.000000) + (microSeconds / 1000.000000);
+    printf("time: %f %ld %ld\n", milliSeconds, test.tv_usec, gTimer.tv_usec);
+    */
     //int resultAlrm = FALSE;
     //init response
     ft_memset(&msgResponse, 0, sizeof(struct msghdr));
@@ -94,6 +105,7 @@ static void    sigHandlerAlrm(int sigNum) {
     if (sigNum != SIGALRM)
         return ;
     interrupt = TRUE;
+    ++nb;
     return ;
     int cpyI = roundTripGlobal.packetSend % 65536;
 
@@ -217,18 +229,28 @@ void    runIcmp() {
         exitInet();
     //get timestamp for ping payload
     struct itimerval new, old;
-    float it_usec = (t_flags.interval - (int)t_flags.interval) * t_flags.dividend;
-    float it_sec = t_flags.interval - (t_flags.interval - (long)t_flags.interval);
+    float it_usec = t_flags.interval - (long)t_flags.interval;// * t_flags.dividend;
+    float it_sec = t_flags.interval - (long)t_flags.interval;
     
     new.it_interval.tv_sec = (long)it_sec;
-    new.it_interval.tv_usec = (long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//t_flags.interval - (int)t_flags.interval;
+    new.it_interval.tv_usec = (long)(it_usec * 1000000.0f);//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//t_flags.interval - (int)t_flags.interval;
     new.it_value.tv_sec = (long)it_sec;
-    new.it_value.tv_usec = (long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//(int)(t_flags.interval - (int)t_flags.interval);
+    new.it_value.tv_usec = (long)(it_usec * 1000000.0f);//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//(int)(t_flags.interval - (int)t_flags.interval);
     if (!new.it_interval.tv_sec
         && !new.it_interval.tv_usec) {
         new.it_interval.tv_sec = 1;
         new.it_value.tv_sec = 1;
     }
+
+    double  milliSeconds;
+    time_t seconds = new.it_value.tv_sec;
+    suseconds_t microSeconds = new.it_value.tv_usec;
+    milliSeconds = (seconds) + (microSeconds / 1000000.0f);
+    printf("time: %f %ld %ld sec: %ld it_usec: %ld it:%f interval: %ld div:%d\n",
+        milliSeconds, seconds, microSeconds, (long)it_sec, (long)(it_usec * 1000000.0f), t_flags.interval, (long)t_flags.interval, t_flags.dividend);
+    printf("%ld %ld", new.it_interval.tv_sec, new.it_interval.tv_usec);
+    //exit(1);
+  
     //t_flags.time = ((new.it_interval.tv_sec) * 1000000)
     //    + (new.it_interval.tv_usec);
     //printf("usec: %ld\n", new.it_interval.tv_usec);
@@ -244,11 +266,11 @@ void    runIcmp() {
         //    close(fdSocket);
         //exit(1);
     }
-    if (t_flags.w) {
+    //if (t_flags.w) {
         if (gettimeofday(&gTimer, 0) < 0) {
             exitInet();
         }
-    }
+    //}
     //display ping header
     ft_memset(buff, 0, ECHO_REQUEST_SIZE);
     cpyI = roundTripGlobal.packetSend % 65536;
