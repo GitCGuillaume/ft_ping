@@ -217,6 +217,7 @@ int main(int argc, char *argv[]) {
     //copy argv since I will manipulate argv values
     for (int i = 0; i < argc; i++)
         cpyArgv[i] = argv[i];
+    cpyArgv[argc] = NULL;
     ft_memset(pingMemory, 0, sizeof(pingMemory));
     ft_memset(&roundTripGlobal, 0, sizeof(struct s_round_trip));
     t_flags.v = FALSE;

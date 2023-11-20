@@ -155,10 +155,24 @@ void    icmpInitResponse(struct msghdr *msg, ssize_t recv,
             return ;//(RELOOP);
         }
         t_flags.preload = 0;
-        /*struct timeval timeout;
-        //usleep(1000000);
+        
+        struct timeval timeout;
+        //cut interval sec / microseconds
+        long it_sec = (long)t_flags.interval;
+        long it_usec = (t_flags.interval - (long)t_flags.interval) * 1000000.0f;
+
         gettimeofday(&timeout, NULL);
-        ssize_t time = ((timeout.tv_sec - tvB->tv_sec) * 1000000)
+        printf("sec:%ld it_usec:%ld timeout_sec: %ld timeout_usec: %ld\n", it_sec, it_usec, timeout.tv_sec - tvB->tv_sec, timeout.tv_usec - tvB->tv_usec);
+        //exit(1);
+        timeout.tv_sec = it_sec  - (timeout.tv_sec - tvB->tv_sec);
+        timeout.tv_usec = it_usec - (timeout.tv_usec - tvB->tv_usec);
+        printf("sec: %ld usec: %ld\n", timeout.tv_sec, timeout.tv_usec);
+        if (setsockopt(fdSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) != 0) {
+            dprintf(2, "%s", "Couldn't set option RCVTIMEO socket.\n");
+            exitInet();
+        }
+    exit(1);
+        /*ssize_t time = ((timeout.tv_sec - tvB->tv_sec) * 1000000)
             + ((timeout.tv_usec - tvB->tv_usec));
         while (!end && !interrupt && time < t_flags.time) {
             gettimeofday(&timeout, NULL);
@@ -172,3 +186,27 @@ void    icmpInitResponse(struct msghdr *msg, ssize_t recv,
     //printf("p:%d\n", t_flags.preload);
         //usleep(1000000);
 }
+/*
+struct timeval new;
+float test = t_flags.interval - *milliSeconds;
+printf("interval: %f test:%f\n", t_flags.interval, test);
+//float it_sec = (long)test;
+float it_usec = test - (long)test;// * t_flags.dividend;
+
+//   exit(1);
+new.tv_usec = (long)(it_usec * 1000000.0f);//(it_usec * 1000000.0f) % 1000000;//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//t_flags.interval - (int)t_flags.interval;
+new.tv_sec = (long)test;
+printf("\ntv_sec: %ld\ntv_usec: %ld\nsec: %f, msec: %f", new.tv_sec, new.tv_usec, test, it_usec);
+//exit(1);
+//new.tv_sec = (long)it_sec;
+//new.tv_usec = (long)(it_usec * 1000000.0f) % 1000000;//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//(int)(t_flags.interval - (int)t_flags.interval);
+//if (!new.tv_sec
+//    && !new.tv_usec) {
+//    new.it_interval.tv_sec = 1;
+//    new.tv_sec = 1;
+// }
+if (setsockopt(fdSocket, SOL_SOCKET, SO_RCVTIMEO, &new, sizeof(new)) != 0) {
+    dprintf(2, "%s", "Couldn't set option RCVTIMEO socket.\n");
+    exitInet();
+}
+*/

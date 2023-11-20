@@ -3,8 +3,6 @@
 
 static struct timeval gTimer;
 
-
-
 /* Get request response */
 static void    icmpGetResponse() {
     char buff2[ECHO_REPLY_SIZE];
@@ -33,16 +31,17 @@ static void    icmpGetResponse() {
     //result = recvmsg(fdSocket, &msgResponse, MSG_DONTWAIT);
     result = recvmsg(fdSocket, &msgResponse, 0);
     if (result < 0
-        && errno != EWOULDBLOCK && errno != EAGAIN) {
+        && errno != EWOULDBLOCK && errno != EAGAIN && errno != EINTR) {
         alarm(0);
         dprintf(2, "ping: receiving packet: %s\n", strerror(errno));
         exitInet();
     }
+    printf("rrr: %d %d\n", result, errno);
     //printf("res:%d\n", result);
     //printf("int:%d\n", interrupt);
     //exit(1);
-    while (!end && result == -1 && !interrupt) {
-        result = recvmsg(fdSocket, &msgResponse, 0);
+    /*while (!end && result == -1 && !interrupt) {
+	    result = recvmsg(fdSocket, &msgResponse, 0);
         if (result < 0
             && errno != EWOULDBLOCK && errno != EAGAIN) {
             alarm(0);
@@ -55,8 +54,11 @@ static void    icmpGetResponse() {
             //errno = cpyErrno;if (sigNum != SIGALRM)
        // return ;
         //}
-    }
-    if (end || (result == -1 && interrupt == TRUE)) {
+    }*/
+    if (end || (result == -1 && (errno == EWOULDBLOCK || errno == EAGAIN))) {//|| (result == -1 && interrupt == TRUE)) {
+        interrupt = TRUE;
+       // printf("interrupted");
+        //exit(1);
         t_flags.preload = 0;
         return ;//(FALSE);
     }
@@ -68,7 +70,7 @@ static void    icmpGetResponse() {
     //printf("result: %d\n", result);
     if (gettimeofday(&tvA, 0) < 0)
         exitInet();
-    //result - sizeof(struct iphdr) = whole response minus ip header (84-20)=64 
+    //result - sizeof(struct iphdr) = whole response minus ip header (84-20)=64
     //echo reply is 64 like a standard reply from the ping inetutils2.0
     icmpInitResponse(&msgResponse, result - sizeof(struct iphdr), &tvA);
     //printf("sleep:%d\n", usleep(1000000));
@@ -101,14 +103,15 @@ static void    fillBuffer(char *buff, struct s_ping_memory *ping,
 }
 
 /* send ping using signal alarm */
-static void    sigHandlerAlrm(int sigNum) {
+void    sigHandlerAlrm(int sigNum) {
     if (sigNum != SIGALRM)
         return ;
     interrupt = TRUE;
     ++nb;
+    if (end)
+	    alarm(0);
     return ;
     int cpyI = roundTripGlobal.packetSend % 65536;
-
     
     if (!listAddr)
         exitInet();
@@ -225,17 +228,17 @@ void    runIcmp() {
     //int resultRecv = FALSE;
     int cpyI;
 
-    if (signal(SIGALRM, sigHandlerAlrm) == SIG_ERR)
-        exitInet();
+    //if (signal(SIGALRM, sigHandlerAlrm) == SIG_ERR)
+    //    exitInet();
     //get timestamp for ping payload
-    struct itimerval new, old;
+    /*struct itimerval new, old;
     float it_usec = t_flags.interval - (long)t_flags.interval;// * t_flags.dividend;
-    float it_sec = t_flags.interval - (long)t_flags.interval;
+    float it_sec = (long)t_flags.interval;
     
     new.it_interval.tv_sec = (long)it_sec;
-    new.it_interval.tv_usec = (long)(it_usec * 1000000.0f);//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//t_flags.interval - (int)t_flags.interval;
+    new.it_interval.tv_usec = (long)(it_usec * 1000000.0f) % 1000000;//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//t_flags.interval - (int)t_flags.interval;
     new.it_value.tv_sec = (long)it_sec;
-    new.it_value.tv_usec = (long)(it_usec * 1000000.0f);//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//(int)(t_flags.interval - (int)t_flags.interval);
+    new.it_value.tv_usec = (long)(it_usec * 1000000.0f) % 1000000;//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//(int)(t_flags.interval - (int)t_flags.interval);
     if (!new.it_interval.tv_sec
         && !new.it_interval.tv_usec) {
         new.it_interval.tv_sec = 1;
@@ -256,6 +259,7 @@ void    runIcmp() {
     //printf("usec: %ld\n", new.it_interval.tv_usec);
     //exit(1);
     //    new.it_value.tv_sec, new.it_value.tv_usec;
+    printf("loop\n");
     if (setitimer(ITIMER_REAL, &new, &old) != 0) {
         alarm(0);
         //if (listAddr)
@@ -266,6 +270,8 @@ void    runIcmp() {
         //    close(fdSocket);
         //exit(1);
     }
+    printf("loop2\n");
+    */
     //if (t_flags.w) {
         if (gettimeofday(&gTimer, 0) < 0) {
             exitInet();
@@ -276,12 +282,11 @@ void    runIcmp() {
     cpyI = roundTripGlobal.packetSend % 65536;
     initPing(&pingMemory[cpyI], 0);
     displayPingHeader();
-    
     while (!end) {
-    //if (interrupt == TRUE) {
+	    //if (interrupt == TRUE) {
         for (uint32_t preloadI = 0; preloadI <= t_flags.preload; ++preloadI) {
-//            if (end)
-  //              break ;
+            //if (end)
+            //    break ;
             //if (USHRT_MAX < roundTripGlobal.packetReq)
             //    roundTripGlobal.packetReq = 0;
             cpyI = roundTripGlobal.packetSend % 65536;

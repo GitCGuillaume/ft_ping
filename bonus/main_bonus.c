@@ -32,6 +32,20 @@ static int openSocket() {
     ssize_t    ttl = t_flags.ttl;
     int     fd = -1;
 
+    struct timeval new;
+    float it_usec = t_flags.interval - (long)t_flags.interval;// * t_flags.dividend;
+    float it_sec = (long)t_flags.interval;
+    
+    new.tv_sec = (long)it_sec;
+    new.tv_usec = (long)(it_usec * 1000000.0f) % 1000000;//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//t_flags.interval - (int)t_flags.interval;
+    //new.tv_sec = (long)it_sec;
+    //new.tv_usec = (long)(it_usec * 1000000.0f) % 1000000;//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//(int)(t_flags.interval - (int)t_flags.interval);
+    if (!new.tv_sec
+        && !new.tv_usec) {
+    //    new.it_interval.tv_sec = 1;
+        new.tv_sec = 1;
+    }
+
     if (ttl == 0) {
         dprintf(2, "ping: option value too small: %ld\n", ttl);
         freeaddrinfo(listAddr);
@@ -43,7 +57,7 @@ static int openSocket() {
     }
     while (mem)
     {
-        fd = socket(mem->ai_family, mem->ai_socktype | SOCK_NONBLOCK, mem->ai_protocol);
+        fd = socket(mem->ai_family, mem->ai_socktype, mem->ai_protocol);
         if (fd < 0) {
             dprintf(2, "%s", "Couldn't open socket.\n");
             freeaddrinfo(listAddr);
@@ -63,6 +77,12 @@ static int openSocket() {
                         close(fdSocket);
                     exit(EXIT_FAILURE);
                 }
+            }
+            if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &new, sizeof(new)) != 0) {
+                dprintf(2, "%s", "Couldn't set option RCVTIMEO socket.\n");
+                if (fdSocket >= 0)
+                    close(fdSocket);
+                exit(EXIT_FAILURE);
             }
             break ;
         }
@@ -158,7 +178,7 @@ float    parseArgumentI(const char *cmd,
         (*str)++;
     }
     while (*str[0]) {
-        if (*str[0] == ',')
+	if (*str[0] == ',')
             (*str)++;
         if (!*str[0])
             break ;
@@ -405,6 +425,7 @@ int main(int argc, char *argv[]) {
     //copy argv since I will manipulate argv values
     for (int i = 0; i < argc; i++)
         cpyArgv[i] = argv[i];
+    cpyArgv[argc] = NULL;
     ft_memset(pingMemory, 0, sizeof(pingMemory));
     ft_memset(&roundTripGlobal, 0, sizeof(struct s_round_trip));
     //init flags
