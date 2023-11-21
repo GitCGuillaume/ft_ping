@@ -156,22 +156,17 @@ void    icmpInitResponse(struct msghdr *msg, ssize_t recv,
         }
         t_flags.preload = 0;
         
-        struct timeval timeout;
+        
         //cut interval sec / microseconds
-        long it_sec = (long)t_flags.interval;
-        long it_usec = (t_flags.interval - (long)t_flags.interval) * 1000000.0f;
+        
 
-        gettimeofday(&timeout, NULL);
-        printf("sec:%ld it_usec:%ld timeout_sec: %ld timeout_usec: %ld\n", it_sec, it_usec, timeout.tv_sec - tvB->tv_sec, timeout.tv_usec - tvB->tv_usec);
+        
+        //printf("sec:%ld it_usec:%ld timeout_sec: %ld timeout_usec: %ld\n", it_sec, it_usec, timeout.tv_sec - tvB->tv_sec, timeout.tv_usec - tvB->tv_usec);
         //exit(1);
-        timeout.tv_sec = it_sec  - (timeout.tv_sec - tvB->tv_sec);
-        timeout.tv_usec = it_usec - (timeout.tv_usec - tvB->tv_usec);
-        printf("sec: %ld usec: %ld\n", timeout.tv_sec, timeout.tv_usec);
-        if (setsockopt(fdSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) != 0) {
-            dprintf(2, "%s", "Couldn't set option RCVTIMEO socket.\n");
-            exitInet();
-        }
-    exit(1);
+        //timeout.tv_sec = it_sec  - (timeout.tv_sec);
+        //timeout.tv_usec = it_usec - (timeout.tv_usec);
+        //printf("sec: %ld usec: %ld\n", timeout.tv_sec, timeout.tv_usec);
+        
         /*ssize_t time = ((timeout.tv_sec - tvB->tv_sec) * 1000000)
             + ((timeout.tv_usec - tvB->tv_usec));
         while (!end && !interrupt && time < t_flags.time) {

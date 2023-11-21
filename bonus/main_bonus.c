@@ -35,16 +35,16 @@ static int openSocket() {
     struct timeval new;
     float it_usec = t_flags.interval - (long)t_flags.interval;// * t_flags.dividend;
     float it_sec = (long)t_flags.interval;
-    
-    new.tv_sec = (long)it_sec;
-    new.tv_usec = (long)(it_usec * 1000000.0f) % 1000000;//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//t_flags.interval - (int)t_flags.interval;
+(void)it_usec;(void)it_sec;
+    new.tv_sec = 0;//(long)it_sec;
+    new.tv_usec = 1;//(long)(it_usec * 1000000.0f) % 1000000;//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//t_flags.interval - (int)t_flags.interval;
     //new.tv_sec = (long)it_sec;
     //new.tv_usec = (long)(it_usec * 1000000.0f) % 1000000;//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//(int)(t_flags.interval - (int)t_flags.interval);
-    if (!new.tv_sec
+    /*if (!new.tv_sec
         && !new.tv_usec) {
     //    new.it_interval.tv_sec = 1;
         new.tv_sec = 1;
-    }
+    }*/
 
     if (ttl == 0) {
         dprintf(2, "ping: option value too small: %ld\n", ttl);

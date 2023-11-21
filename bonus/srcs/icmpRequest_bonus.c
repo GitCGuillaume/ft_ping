@@ -11,6 +11,13 @@ static void    icmpGetResponse() {
     struct timeval tvA;
     int result = -1;
 
+    //for timeout start
+    long it_sec = (long)t_flags.interval;
+    long it_usec = (t_flags.interval - (long)t_flags.interval) * 1000000.0f;
+    (void)it_sec;(void)it_usec;
+    struct timeval start;
+    //gettimeofday(&start, NULL);
+
     /*struct timeval test;
     gettimeofday(&test, NULL);
     double  milliSeconds;
@@ -29,6 +36,10 @@ static void    icmpGetResponse() {
     msgResponse.msg_iovlen = 1;
     int cpyErrno = errno;
     //result = recvmsg(fdSocket, &msgResponse, MSG_DONTWAIT);
+    socklen_t st = sizeof(start);
+    getsockopt(fdSocket, SOL_SOCKET, SO_RCVTIMEO,
+                      &start, &st);
+    printf("start.sec:%ld usec: %ld\n", start.tv_sec, start.tv_usec);
     result = recvmsg(fdSocket, &msgResponse, 0);
     if (result < 0
         && errno != EWOULDBLOCK && errno != EAGAIN && errno != EINTR) {
@@ -73,8 +84,45 @@ static void    icmpGetResponse() {
     //result - sizeof(struct iphdr) = whole response minus ip header (84-20)=64
     //echo reply is 64 like a standard reply from the ping inetutils2.0
     icmpInitResponse(&msgResponse, result - sizeof(struct iphdr), &tvA);
-    //printf("sleep:%d\n", usleep(1000000));
-    //return (TRUE);
+    (void)it_sec;(void)it_usec;
+    //struct timeval end;
+    //usleep(3555555);
+    //gettimeofday(&end, NULL);
+   /* printf("it_sec: %ld it_usec: %ld\n", it_sec, it_usec);
+    printf("start_sec: %ld, start_usec: %ld\n", start.tv_sec, start.tv_usec);
+    printf("end_sec: %ld, end_usec: %ld\n", end.tv_sec, end.tv_usec);
+    */
+    //float time1 = (end.tv_sec - start.tv_sec)
+    //        + ((end.tv_usec - start.tv_usec) / 1000000.0f);
+    /*printf("t1: %finterval: %f\n", time1, t_flags.interval);
+    printf("start_sec: %ld start_usec: %ld\n", start.tv_sec, start.tv_usec);
+    printf("end_sec: %ld end_usec: %ld\n", end.tv_sec, end.tv_usec);
+    printf("-sec: %ld -usec: %ld\n", end.tv_sec - start.tv_sec, end.tv_usec - start.tv_usec);
+    */
+    //printf("end_sec: %ld end_usec: %ld\n", end.tv_sec, end.tv_usec);
+   // end.tv_sec =0;//-= start.tv_sec;
+   // end.tv_usec = 1;//-= start.tv_usec;
+    //if it usec < 0; reduce of at leas=0;//t 1 second;
+    //printf("start_sec: %ld start_usec:1;// %ld\n", start.tv_sec, start.tv_usec);
+    /*while (start.tv_sec < 0) {
+        start.tv_sec += 1;
+        //start.tv_usec -= 100000;
+    }
+    //printf("start_sec: %ld start_usec: %ld\n", start.tv_sec, start.tv_usec);
+    //well now tv_sec is negative
+    while (start.tv_usec < 0) {
+        //start.tv_sec += 1;
+        start.tv_usec += 100000;
+    }*/
+    //printf("it_sec: %ld it_usec:%ld\n", it_sec, it_usec);
+    //printf("start_sec: %ld start_usec: %ld\n", end.tv_sec, end.tv_usec);
+    //exit(1);
+  /*  if (setsockopt(fdSocket, SOL_SOCKET, SO_RCVTIMEO, &end, sizeof(end)) != 0) {
+        dprintf(2, "%s", "Couldn't set option RCVTIMEO socket.\n");
+        exitInet();
+    }*/
+    //exit(1);
+
 }
 
 static void    initPing(struct s_ping_memory *ping, int cpyI) {
