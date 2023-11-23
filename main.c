@@ -212,7 +212,7 @@ static void    pingStart(int argc, char *argv[]) {
 
 //ping [OPTIONS] host
 int main(int argc, char *argv[]) {
-    char    *cpyArgv[argc];
+    char    *cpyArgv[argc + 1];
 
     //copy argv since I will manipulate argv values
     for (int i = 0; i < argc; i++)

@@ -18,16 +18,21 @@ static double   ftSqrt(double num) {
     return (x);
 }
 
-/* Called on SIGINT signal */
+void    sigHandlerInt(int sigNum) {
+    if (sigNum != SIGINT)
+        return ;
+    end = TRUE;
+}
+
+/*
+    https://en.wikipedia.org/wiki/Standard_deviation
+    https://fr.wikipedia.org/wiki/Variance_(mathématiques)
+    Called on SIGINT signal
+*/
 void    signalEnd(void) {
     double  average;
     double  stdDev = 0.0f;
-    alarm(0);
-    printf("nb:%d\n", nb);
-    //while(1){
-    //    printf("errno: %d\n", errno);
-    //    if (errno) { exit(1);}
-    //};
+    //alarm(0);
     if (!listAddr) {
         if (fdSocket != -1) {
             close(fdSocket);

@@ -1,6 +1,7 @@
 #include "tools_bonus.h"
 #include "flags_bonus.h"
 #include "ft_icmp_bonus.h"
+#include "parsing_bonus.h"
 
 struct s_ping_memory    pingMemory[65536];
 struct  addrinfo *listAddr = 0;//need to be cleaned in CTRL+C + alarm(function is sigHandlerAlrm)
@@ -9,17 +10,6 @@ struct s_flags t_flags;
 int fdSocket;//must be also closed on CTRL+C etc
 //https://www.gnu.org/software/libc/manual/html_node/Atomic-Types.html
 volatile sig_atomic_t   end = FALSE;
-volatile sig_atomic_t   interrupt = FALSE;
-volatile sig_atomic_t nb = 0;//a delete
-/*
-    https://en.wikipedia.org/wiki/Standard_deviation
-    https://fr.wikipedia.org/wiki/Variance_(mathématiques)
-*/
-void    sigHandlerInt(int sigNum) {
-    if (sigNum != SIGINT)
-        return ;
-    end = TRUE;
-}
 
 /* code /usr/include/x86_64-linux-gnu/bits/in.h
     Options for use with `getsockopt' and `setsockopt' at the IP level.
@@ -33,19 +23,11 @@ static int openSocket() {
     int     fd = -1;
 
     struct timeval new;
-    float it_usec = t_flags.interval - (long)t_flags.interval;// * t_flags.dividend;
+    float it_usec = t_flags.interval - (long)t_flags.interval;
     float it_sec = (long)t_flags.interval;
-(void)it_usec;(void)it_sec;
-    new.tv_sec = 0;//(long)it_sec;
-    new.tv_usec = 1;//(long)(it_usec * 1000000.0f) % 1000000;//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//t_flags.interval - (int)t_flags.interval;
-    //new.tv_sec = (long)it_sec;
-    //new.tv_usec = (long)(it_usec * 1000000.0f) % 1000000;//(long)(it_usec * CONV_SEC_TO_MICR) / t_flags.dividend;//(int)(t_flags.interval - (int)t_flags.interval);
-    /*if (!new.tv_sec
-        && !new.tv_usec) {
-    //    new.it_interval.tv_sec = 1;
-        new.tv_sec = 1;
-    }*/
 
+    new.tv_sec = (long)it_sec;
+    new.tv_usec = (long)(it_usec * 1000000.0f) % 1000000;
     if (ttl == 0) {
         dprintf(2, "ping: option value too small: %ld\n", ttl);
         freeaddrinfo(listAddr);
@@ -91,154 +73,7 @@ static int openSocket() {
     return (fd);
 }
 
-static void requireArgument(const char *cmd, const char *original) {
-    if (!original) {
-        if (cmd[0] == '-' && cmd[1] == '-')
-            dprintf(2, "ping: option \'%s\' requires an argument\n", cmd);
-        else
-            dprintf(2, "ping: option requires an argument -- \'%s\'\n", cmd);
-        dprintf(2, "Try 'ping --help' or 'ping --usage' for more information.\n");
-        exit(64);
-    }
-}
-
-uint32_t    parseArgument(const char *cmd,
-    const char *original, char **str,
-    uint32_t maxValue) {
-    uint32_t    result = 0;
-    uint32_t    i = 0;
-
-    requireArgument(cmd, original);
-    if (!str[0][i]) {
-        dprintf(2, "ping: option value too small: %s\n", original);
-        exit(1);
-    }
-    while (str[0][i] && str[0][i] == ' ')
-        ++i;
-    if (ft_isdigit(str[0][i])) {
-        (*str) += i;
-    }
-    i = 0;
-    if (!str[0][i]) {
-        dprintf(2, "ping: invalid value (`%s\' near `%s\')\n",
-            original, str[0]);
-        exit(1);
-    }
-    for (; *str[0] != 0; (*str)++) {
-        if (ft_isdigit(*str[0])) {
-            result = result * 10 + *str[0] - '0';
-        } else {
-            dprintf(2, "ping: invalid value (`%s\' near `%s\')\n",
-                original, str[0]);
-            exit(1);
-        }
-        if (result == 0) {
-            dprintf(2, "ping: option value too small: %s\n", original);
-            exit(1);
-        } else if (result > maxValue) {
-            dprintf(2, "ping: option value too big: %s\n", original);
-            exit(1);
-        }
-    }
-    //printf("res:%u\n", result);
-    return (result);
-}
-
-float    parseArgumentI(const char *cmd,
-    const char *original, char **str,
-    uint32_t maxValue) {
-    float   result = 0.0f;
-    uint32_t    i = 0;
-
-    requireArgument(cmd, original);
-    while (str[0][i] && str[0][i] == ' ')
-        ++i;
-    if (ft_isdigit(str[0][i])) {
-        (*str) += i;
-    }
-    i = 0;
-    if (!str[0][i]) {
-        return (0.0f);
-    }
-    //for (; *str[0] != 0; (*str)++) {
-    while (*str[0] && *str[0] != ',') {
-        if (ft_isdigit(*str[0])) {
-            result = result * 10 + *str[0] - '0';
-        } else {
-            dprintf(2, "ping: invalid value (`%s\' near `%s\')\n",
-                original, str[0]);
-            dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
-            exit(1);
-        }
-        if (result > maxValue) {
-            dprintf(2, "ping: option value too big: %s\n", original);
-            dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
-            exit(1);
-        }
-        (*str)++;
-    }
-    while (*str[0]) {
-	if (*str[0] == ',')
-            (*str)++;
-        if (!*str[0])
-            break ;
-        if (ft_isdigit(*str[0])) {
-            t_flags.dividend *= 10;
-            result = result + (float)(*str[0] - '0') / t_flags.dividend;
-        } else {
-            dprintf(2, "ping: invalid value (`%s\' near `%s\')\n",
-                original, str[0]);
-            dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
-            exit(1);
-        }
-        //printf("res: %f\n", result);
-        /*if (result > maxValue) {
-            dprintf(2, "ping: option value too big: %s\n", original);
-            dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
-            exit(1);
-        }*/
-        (*str)++;
-    }
-    t_flags.flagI = TRUE;
-    return (result);
-}
-
-uint32_t    parsePreload(const char *cmd,
-    const char *original, char **str,
-    uint32_t maxValue) {
-    uint32_t    result = 0;
-    uint32_t    i = 0;
-
-    requireArgument(cmd, original);
-    while (str[0][i] && str[0][i] == ' ')
-        ++i;
-    if (ft_isdigit(str[0][i])) {
-        (*str) += i;
-    }
-    for (; *str[0] != 0; (*str)++) {
-        if (ft_isdigit(*str[0])) {
-            result = result * 10 + *str[0] - '0';
-        } else {
-            dprintf(2, "ping: invalid preload value (%s)\n", original);
-            exit(1);
-        }
-        if (result > maxValue) {
-            dprintf(2, "ping: invalid preload value (%s)\n", original);
-            exit(1);
-        }
-    }
-    return (result);
-}
-
-char    findArgument(char **str, int i) {
-    if (str[i][0] && str[i][1] && str[i][2]) {
-        str[i] += 2;
-        return (TRUE);
-    }
-    return (FALSE);
-}
-
-char    findArgumentEq(char **str, int i, int j) {
+static char    findArgumentEq(char **str, int i, int j) {
     if (!str[i][j]) {
         return (TRUE);
     }
@@ -254,41 +89,25 @@ static void     searchBigOption(char *argv[], int argc) {
         if (argv[i] && argv[i][0] == '-' && argv[i][1] == '-') {
             if (!ft_strncmp(argv[i], "--verbose", 9))
                     t_flags.v = TRUE;
+            else if(!ft_strncmp(argv[i], "--timeout", 9)
+                && findArgumentEq(argv, i, 9)
+            ) {
+                t_flags.w = bigCallParseArgument(argv, i, 9, 2147483647);
+            }
             else if(!ft_strncmp(argv[i], "--tos", 5)
                 && findArgumentEq(argv, i, 5)
             ) {
-                if (!argv[i][5]) {
-                    t_flags.tos = parseArgument(argv[i], argv[i + 1], &argv[i + 1], 255);
-                    argv[i + 1] = NULL;
-                }
-                else {
-                    t_flags.tos = parseArgument(argv[i], argv[i], &argv[i], 255);
-                    argv[i] = NULL;
-                }
-                //break ;
+                t_flags.tos = bigCallParseArgument(argv, i, 5, 255);
             } else if(!ft_strncmp(argv[i], "--ttl", 5)
                 && findArgumentEq(argv, i, 5)
             ) {
-                if (!argv[i][5]) {
-                    t_flags.ttl = parseArgument(argv[i], argv[i + 1], &argv[i + 1], 255);
-                    argv[i + 1] = NULL;
-                }
-                else {
-                    t_flags.ttl = parseArgument(argv[i], argv[i], &argv[i], 255);
-                    argv[i] = NULL;
-                }
-                //break ;
-            } else if ((!ft_strncmp(argv[i], "--preload", 9)
-                && findArgumentEq(argv, i, 9))) {
-                if (!argv[i][9]) {
-                    t_flags.preload = parsePreload(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
-                    argv[i + 1] = NULL;
-                }
-                else {
-                    t_flags.preload = parsePreload(argv[i], argv[i], &argv[i], 2147483647);
-                    argv[i] = NULL;
-                }
-                //break ;
+                t_flags.ttl = bigCallParseArgument(argv, i, 5, 255);
+            } else if (!ft_strncmp(argv[i], "--preload", 9)
+                && findArgumentEq(argv, i, 9)) {
+                t_flags.preload = bigCallParsePreload(argv, i, 2147483647);
+            } else if (!ft_strncmp(argv[i], "--interval", 10)
+                && findArgumentEq(argv, i, 10)) {
+                t_flags.interval = bigCallParseInterval(argv, i);
             } else if (!ft_strncmp(argv[i], "--help", 6)) {
                 t_flags.interrogation = TRUE;
                     flagInterrogation();
@@ -311,57 +130,31 @@ static void    searchFlags(char *argv[], int argc) {
     for (int i = 1; i < argc; ++i) {
         if (argv[i] && argv[i][0] == '-' && argv[i][1] != '-') {
             for (j = 1; argv[i][j] != '\0'; j++) {
-                if (argv[i][j] == 'v')
-                    t_flags.v = TRUE;
-                else if (argv[i][j] == '?') {
-                    t_flags.interrogation = TRUE;
-                    flagInterrogation();
-                    exit(0);
-                } else if (argv[i][j] == 'w') {
-                    if (findArgument(argv, i) == TRUE) {
-                        t_flags.w = parseArgument("w", argv[i], &argv[i], 2147483647);
-                        argv[i] = NULL;
-                    }
-                    else {
-                        t_flags.w = parseArgument("w", argv[i + 1], &argv[i + 1], 2147483647);
-                        argv[i + 1] = NULL;
-                    }
-                    break ;
-                } else if (argv[i][j] == 'T') {
-                    if (findArgument(argv, i) == TRUE) {
-                        t_flags.tos = parseArgument("T", argv[i], &argv[i], 2147483647);
-                        argv[i] = NULL;
-                    }
-                    else {
-                        t_flags.tos = parseArgument("T", argv[i + 1], &argv[i + 1], 2147483647);
-                        argv[i + 1] = NULL;
-                    }
-                    break ;
-                } else if (argv[i][j] == 'l') {
-                    if (findArgument(argv, i) == TRUE) {
-                        t_flags.preload = parsePreload(argv[i], argv[i], &argv[i], 2147483647);
-                        argv[i] = NULL;
-                    }
-                    else {
-                        t_flags.preload = parsePreload(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
-                        argv[i + 1] = NULL;
-                    }
-                    break ;
-                } else if (argv[i][j] == 'i') {
-                    if (findArgument(argv, i) == TRUE) {
-                        t_flags.interval = parseArgumentI(argv[i], argv[i], &argv[i], 2147483647);
-                        argv[i] = NULL;
-                    }
-                    else {
-                        t_flags.interval = parseArgumentI(argv[i], argv[i + 1], &argv[i + 1], 2147483647);
-                        argv[i + 1] = NULL;
-                    }
-                    break ;
-                }
-                else {
-                    dprintf(2, "%s%c%c\n", "ping: invalid option -- \'", argv[i][j], '\'');
-                    dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
-                    exit(64);
+                switch (argv[i][j]) {
+                    case 'v':
+                        t_flags.v = TRUE;
+                        continue ;
+                    case '?':
+                        t_flags.interrogation = TRUE;
+                        flagInterrogation();
+                        exit(0);
+                        break ;
+                    case 'w':
+                        t_flags.w = callParseArgument(argv, i, 2147483647);
+                        break ;
+                    case 'T':
+                        t_flags.tos = callParseArgument(argv, i, 255);
+                        break ;
+                    case 'l':
+                        t_flags.preload = callParsePreload(argv, i, 2147483647);
+                        break ;
+                    case 'i':
+                        t_flags.interval = callParseInterval(argv, i);
+                        break ;
+                    default:
+                        dprintf(2, "%s%c%c\n", "ping: invalid option -- \'", argv[i][j], '\'');
+                        dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
+                        exit(64);
                 }
             }
         }
@@ -420,7 +213,7 @@ static void    pingStart(int argc, char *argv[]) {
 
 //ping [OPTIONS] host
 int main(int argc, char *argv[]) {
-    char    *cpyArgv[argc];
+    char    *cpyArgv[argc + 1];
 
     //copy argv since I will manipulate argv values
     for (int i = 0; i < argc; i++)
@@ -431,12 +224,10 @@ int main(int argc, char *argv[]) {
     //init flags
     t_flags.v = FALSE;
     t_flags.interrogation = FALSE;
-    t_flags.flagI = FALSE;
     t_flags.ttl = 60;
     t_flags.tos = 0;
     t_flags.w = 0;
     t_flags.preload = 0;
-    t_flags.dividend = 1;
     t_flags.interval = 1.0f;
     if (getuid() != 0) {
         dprintf(2, "%s", "Please use root privileges.\n");

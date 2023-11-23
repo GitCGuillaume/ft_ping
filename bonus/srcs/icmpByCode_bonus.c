@@ -66,31 +66,6 @@ static void    paramProb(uint8_t code) {
 }
 
 /*
-void    timeStamp(uint8_t code) {
-
-}
-
-void    timeStampReply(uint8_t code) {
-
-}
-
-void    infoRequest(uint8_t code) {
-
-}
-
-void    infoReply(uint8_t code) {
-
-}
-
-void    address(uint8_t code) {
-
-}
-
-void    addressReply(uint8_t code) {
-    
-}*/
-
-/*
     code /usr/include/netinet/ip_icmp.h
     NONE = no code
     https://datatracker.ietf.org/doc/html/rfc1122#page-38
@@ -128,8 +103,8 @@ void getIcmpCode(struct icmphdr *icmp, char *buff, ssize_t recv) {
         NULL, NULL, NULL,
         &destUnreach, &sourceQuench, &redirect,
         NULL, NULL, NULL, NULL, NULL,
-        &timeExceed, &paramProb, NULL/*&timeStamp*/, NULL/*&timeStampReply*/,
-        NULL/*&infoRequest*/, NULL/*&infoReply*/, NULL/*&address*/, NULL/*&addressReply*/
+        &timeExceed, &paramProb, NULL, NULL,
+        NULL, NULL, NULL, NULL
     };
     void    (*functionCall)(uint8_t) = NULL;
     unsigned int i;

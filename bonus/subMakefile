@@ -4,7 +4,7 @@ SRCS_TOOLS_BONUS = icmpByCodeTools_bonus.c icmpTools_bonus.c tools_bonus.c
 
 SRCS_BONUS = icmpByCode_bonus.c icmpRequest_bonus.c icmpResponse_bonus.c
 
-SRCS_MAIN_BONUS = main_bonus.c
+SRCS_MAIN_BONUS = parsingToolsOne_bonus.c parsingToolsTwo_bonus.c main_bonus.c
 
 NAME_BONUS = ft_ping_bonus
 

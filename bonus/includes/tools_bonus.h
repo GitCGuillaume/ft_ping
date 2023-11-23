@@ -1,11 +1,11 @@
 #ifndef TOOLS_BONUS_H
 # define TOOLS_BONUS_H
 
-#include <math.h>
 #include <errno.h>
+#include <stdint.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include "netinet/ip_icmp.h"
+#include <netinet/ip_icmp.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -16,8 +16,12 @@
 #include <signal.h>
 #include "libft.h"
 
-#define TRUE 1
-#define FALSE 0
+#ifndef TRUE
+    #define TRUE 1
+#endif
+#ifndef FALSE
+    #define FALSE 0
+#endif
 #define RELOOP 2
 #define NONE 20
 #define ICMP 1
@@ -28,14 +32,11 @@
 struct s_flags {
     char    v;
     char    interrogation;
-    char    flagI;
     uint32_t    tos;
     uint32_t    ttl;
     uint32_t    w;
     ssize_t    preload;
-    uint32_t    dividend;
-    //ssize_t time;    
-    float    interval;
+    double    interval;
 };
 
 /*
@@ -56,9 +57,9 @@ struct s_round_trip {
     uint32_t    packetReceive;
     uint32_t    packetDuplicate;
     uint32_t    packetSend;
-    //uint32_t    packetReq;
 };
 
+void    sigHandlerInt(int sigNum);
 void    signalEnd(void);
 void    sigHandlerInt(int sigNum);
 void    exitInet(void);
@@ -76,6 +77,4 @@ extern struct  addrinfo *listAddr;
 extern struct s_ping_memory    pingMemory[65536];
 extern struct s_round_trip  roundTripGlobal;
 extern volatile sig_atomic_t   end;
-extern volatile sig_atomic_t   interrupt;
-extern volatile sig_atomic_t nb;
 #endif
