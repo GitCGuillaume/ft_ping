@@ -3,7 +3,7 @@
 
 /* Get request response */
 static int    icmpGetResponse() {
-    char buff2[ECHO_REPLY_SIZE];
+    char buff[ECHO_REPLY_SIZE];
     struct msghdr msgResponse;
     struct iovec msg[1];
     struct timeval tvA;
@@ -11,8 +11,8 @@ static int    icmpGetResponse() {
 
     //init response
     ft_memset(&msgResponse, 0, sizeof(struct msghdr));
-    msg[0].iov_base = buff2;
-    msg[0].iov_len = sizeof(buff2);
+    msg[0].iov_base = buff;
+    msg[0].iov_len = sizeof(buff);
     msgResponse.msg_iov = msg;
     msgResponse.msg_iovlen = 1;
     int cpyErrno = errno;
