@@ -1,6 +1,28 @@
 #include "ft_icmp_bonus.h"
 #include "tools_bonus.h"
 
+void    substractDelta(struct timeval elapsedEndTime, struct timeval *elapsedStartTime) {
+    float   it_usec = t_flags.interval - (long)t_flags.interval;
+    long    it_sec = (long)t_flags.interval;
+    long    tv_sec = elapsedEndTime.tv_sec - elapsedStartTime->tv_sec;
+    long    tv_usec = elapsedEndTime.tv_usec - elapsedStartTime->tv_usec;
+    long    convertUsec = (long)(it_usec * 1000000);
+    long    seconds = it_sec - tv_sec;
+    long    milli = convertUsec - (tv_usec * 1000);
+
+    //adjust seconds for every 1M MicroSeconds
+    while (milli < 0) {
+        seconds -= 1;
+        milli += 1000000;
+    }
+    elapsedEndTime.tv_sec = seconds;
+    elapsedEndTime.tv_usec = milli;
+    if (setsockopt(fdSocket, SOL_SOCKET, SO_RCVTIMEO, &elapsedEndTime, sizeof(elapsedEndTime)) != 0) {
+        dprintf(2, "%s", "Couldn't set option RCVTIMEO socket.\n");
+        exitInet();
+    }
+}
+
 /* Get request response */
 static int    icmpGetResponse(struct timeval *elapsedStartTime) {
     char buff[ECHO_REPLY_SIZE];
@@ -17,90 +39,11 @@ static int    icmpGetResponse(struct timeval *elapsedStartTime) {
     msgResponse.msg_iov = msg;
     msgResponse.msg_iovlen = 1;
     int cpyErrno = errno;
-//sleep(3);
     if (gettimeofday(&elapsedEndTime, 0) < 0) {
         exitInet();
     }
-    
     //now need to correct elapsed time
-    //printf("%f\n", (elapsedEndTime.tv_sec - elapsedStartTime->tv_sec) * 1000.0f
-    //    + (elapsedEndTime.tv_usec - elapsedStartTime->tv_usec) / 1000.0f);
-    float it_usec = t_flags.interval - (long)t_flags.interval;
-    float it_sec = (long)t_flags.interval;
-    long    tv_sec = elapsedEndTime.tv_sec - elapsedStartTime->tv_sec;
-    long    tv_usec = elapsedEndTime.tv_usec - elapsedStartTime->tv_usec;
-    //printf("it_usec * 1000000: %ld\n", (long)(it_usec * 1000000));
-    tv_usec *= 1000;
-    long convertUsec = (long)(it_usec * 1000000);
-    //printf("tv_usec: %ld\n", tv_usec);
-    //printf("conv:%ld\n", convertUsec);
-    if (tv_usec < convertUsec) {
-        (void)tv_sec;(void)it_sec;
-        long milli = convertUsec - tv_usec;
-        //printf("milli:%ld\n", milli);
-        convertUsec -= milli;
-        //tv_sec -= 1;
-        //printf("tv_sec:%ld\n", tv_sec);
-        elapsedEndTime.tv_sec = tv_sec;
-        elapsedEndTime.tv_usec = milli;
-        if (setsockopt(fdSocket, SOL_SOCKET, SO_RCVTIMEO, &elapsedEndTime, sizeof(elapsedEndTime)) != 0) {
-            dprintf(2, "%s", "Couldn't set option RCVTIMEO socket.\n");
-            exitInet();
-        }
-        //printf("elapsedEndTime.tv_sec: %ld\nelapsedEndTime.tv_usec: %ld\n",
-        //    elapsedEndTime.tv_sec, elapsedEndTime.tv_usec);
-    }
-    //float time = it_sec - ((elapsedEndTime.tv_sec - elapsedStartTime->tv_sec)) +
-    //     it_usec - ((elapsedEndTime.tv_usec - elapsedStartTime->tv_usec));// / 1000000.0f);
-    //float time = it_sec - ((elapsedEndTime.tv_sec - elapsedStartTime->tv_sec) * 1000.0f) +
-    //     it_usec - ((elapsedEndTime.tv_usec - elapsedStartTime->tv_usec) / 1000.0f);
-//sleep(3);
-    /*printf("it_sec: %f it_usec: %f\n", it_sec, it_usec);
-    printf("%f\n", (elapsedEndTime.tv_sec - elapsedStartTime->tv_sec) * 1000.0f
-        + (elapsedEndTime.tv_usec - elapsedStartTime->tv_usec) / 1000.0f);
-    printf("time: %f\n", time);
-    *///time = it_sec - ((elapsedEndTime.tv_sec - elapsedStartTime->tv_sec) * 1000.0f) +
-      //   it_usec - ((elapsedEndTime.tv_usec - elapsedStartTime->tv_usec) / 1000.0f);
-    //printf("time: %f\n", time);
-   // printf("t:%ld\n", (long)(time * 1000000));
-    /*printf("elapsedEndTime.tv_sec: %ld\nelapsedEndTime.tv_usec: %ld\n",
-        elapsedEndTime.tv_sec, elapsedEndTime.tv_usec);
-    printf("AAelapsedEndTime.tv_sec - elapsedStartTime->tv_sec: %ld\n",
-        (long)it_sec - (elapsedEndTime.tv_sec - elapsedStartTime->tv_sec));
-    printf("BBelapsedEndTime.tv_usec - elapsedStartTime->tv_usec: %ld\n",
-        (long)it_usec - (elapsedEndTime.tv_usec - elapsedStartTime->tv_usec));
-    */
-    /*if ((long)(time * 1000000) > 0) {
-        elapsedEndTime.tv_sec = (long)time;
-        elapsedEndTime.tv_usec = (time - (long)time) * 1000000;
-    } else {
-        elapsedEndTime.tv_sec = 0;
-        elapsedEndTime.tv_usec = 1;
-    }*/
-    //elapsedEndTime.tv_sec
-    //    = (long)it_sec - (elapsedEndTime.tv_sec - elapsedStartTime->tv_sec);
-    //elapsedEndTime.tv_usec = (long)it_usec - (elapsedEndTime.tv_usec - elapsedStartTime->tv_usec);
-    /*while (elapsedEndTime.tv_usec < 0) {
-        elapsedEndTime.tv_sec -= 1;
-        elapsedEndTime.tv_usec += 1000000;
-    }
-    if (elapsedEndTime.tv_sec < 0)
-        elapsedEndTime.tv_sec = 0;
-    while (elapsedEndTime.tv_usec > 999999) {
-        elapsedEndTime.tv_sec += 1;
-        elapsedEndTime.tv_usec -= 1000000;
-    }*/
-    //if (elapsedEndTime.tv_usec < 0)
-    //    elapsedEndTime.tv_usec = 0;
-    
-    
-    
-//    printf("%f\n\n", (float)(elapsedEndTime.tv_sec)
-  //      + (float)(elapsedEndTime.tv_usec)/1000000.0);
-    /*if (setsockopt(fdSocket, SOL_SOCKET, SO_RCVTIMEO, &elapsedEndTime, sizeof(elapsedEndTime)) != 0) {
-        dprintf(2, "%s", "Couldn't set option RCVTIMEO socket.\n");
-        exitInet();
-    }*/
+    substractDelta(elapsedEndTime, elapsedStartTime);
     result = recvmsg(fdSocket, &msgResponse, 0);
     if (result < 0
         && errno != EWOULDBLOCK && errno != EAGAIN && errno != EINTR) {
@@ -109,7 +52,7 @@ static int    icmpGetResponse(struct timeval *elapsedStartTime) {
         exitInet();
     }
     if (end || result == -1){
-        printf("res:%d\n", result);
+        //printf("res:%d\n", result);
         t_flags.preload = 0;
         return (TRUE);
     }
