@@ -1,20 +1,22 @@
 #include "ft_icmp_bonus.h"
 #include "tools_bonus.h"
 
-void    substractDelta(struct timeval elapsedEndTime, struct timeval *elapsedStartTime) {
+static void    substractDelta(struct timeval elapsedEndTime, struct timeval *elapsedStartTime) {
     float   it_usec = t_flags.interval - (long)t_flags.interval;
     long    it_sec = (long)t_flags.interval;
     long    tv_sec = elapsedEndTime.tv_sec - elapsedStartTime->tv_sec;
     long    tv_usec = elapsedEndTime.tv_usec - elapsedStartTime->tv_usec;
     long    convertUsec = (long)(it_usec * 1000000);
     long    seconds = it_sec - tv_sec;
-    long    milli = convertUsec - (tv_usec * 1000);
+    long    milli = convertUsec - tv_usec ;
 
     //adjust seconds for every 1M MicroSeconds
     while (milli < 0) {
         seconds -= 1;
         milli += 1000000;
     }
+    if (seconds == 0 && milli == 0)
+        milli = 1;
     elapsedEndTime.tv_sec = seconds;
     elapsedEndTime.tv_usec = milli;
     if (setsockopt(fdSocket, SOL_SOCKET, SO_RCVTIMEO, &elapsedEndTime, sizeof(elapsedEndTime)) != 0) {
@@ -52,7 +54,6 @@ static int    icmpGetResponse(struct timeval *elapsedStartTime) {
         exitInet();
     }
     if (end || result == -1){
-        //printf("res:%d\n", result);
         t_flags.preload = 0;
         return (TRUE);
     }
@@ -141,11 +142,14 @@ void    runIcmp() {
     if (gettimeofday(&gTimer, 0) < 0) {
         exitInet();
     }
-    //display ping header
+    //display ping header part
     ft_memset(buff, 0, ECHO_REQUEST_SIZE);
     cpyI = roundTripGlobal.packetSend % 65536;
-    initPing(&pingMemory[cpyI], 0);
+    if (cpyI == 0)
+        ft_memset(pingMemory, 0, sizeof(pingMemory));
+    initPing(&pingMemory[cpyI], cpyI);
     displayPingHeader();
+    //end display ping header
     while (!end) {
         for (uint32_t preloadI = 0; preloadI <= t_flags.preload; ++preloadI) {
             if (end)
@@ -178,6 +182,7 @@ void    runIcmp() {
             }
         }
         int interrupt = FALSE;
+
         while (!end && !interrupt) {
             interrupt = icmpGetResponse(&elapsedStartTime);
             if (gettimeofday(&elapsedStartTime, 0) < 0) {

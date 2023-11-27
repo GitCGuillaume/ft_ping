@@ -16,7 +16,7 @@ void    headerDumpIp(struct iphdr *ip) {
 
     const char * saddr = inet_ntop(AF_INET, &ip->saddr, src, INET_ADDRSTRLEN);
     const char * daddr = inet_ntop(AF_INET, &ip->daddr, dst, INET_ADDRSTRLEN);
-    printf("\nIP Hdr Dump:\n %u%u%hhu%hhu %04hx",
+    printf("\nIP Hdr Dump:\n %u%u%hhx%hhx %04hx",
         ip->version, ip->ihl, (uint8_t)(ip->tos & 0xF0) >> 4,
         (uint8_t)(ip->tos & 0xF), ip->tot_len);
     printf(" %04hx %04hx %02hhu%02hhu", ip->id, ip->frag_off, ip->ttl, ip->protocol);
@@ -25,9 +25,9 @@ void    headerDumpIp(struct iphdr *ip) {
         convertEndianess(ip->daddr & 0x0000FFFF), convertEndianess(ip->daddr >> 16));
     /* Display header verbose */
     printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src      Dst     Data\n");
-    printf("%2u %2u  %hhu%hhu %04hx",
-        ip->version, ip->ihl, (uint8_t)(ip->tos & 0xFC),
-        (uint8_t)(ip->tos & 0x3),
+    printf("%2u %2u  %hhx%hhx %04hx",
+        ip->version, ip->ihl, (uint8_t)(ip->tos & 0xF0) >> 4,
+        (uint8_t)(ip->tos & 0xF),
         oddsLen);
     uint8_t flag = ip->frag_off >> 13;
     printf(" %04hx %3hhu %04hx  %02hhu",

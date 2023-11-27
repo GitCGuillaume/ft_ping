@@ -16,7 +16,7 @@
 #endif
 
 void    runIcmp();
-void getIcmpCode(struct icmphdr *icmp, char *buff, ssize_t recv);
+void    getIcmpCode(struct icmphdr *icmp, char *buff, ssize_t recv);
 void    parseIp(struct iphdr *ip, char *buff);
 void    parseIcmp(struct icmphdr  *icmp, char *buff);
 //icmpReponse.c

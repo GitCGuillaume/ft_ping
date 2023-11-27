@@ -7,72 +7,8 @@ struct  addrinfo *listAddr = 0;//need to be cleaned in CTRL+C + alarm(function i
 struct s_round_trip  roundTripGlobal;//mainly for signal function...
 struct s_flags t_flags;
 int fdSocket;//must be also closed on CTRL+C etc
-
-/*
-    Heron's method
-    https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Heron's_method
-*/
-static double   ftSqrt(double num) {
-    double x = num;
-    double old = 0.000000;
-
-    if (num < 0 || num == 0)
-        return (0.0f);
-    while (x != old){
-        old = x;
-        x = (x + num / x) / 2;
-    }
-    return (x);
-}
-
-/*
-    https://en.wikipedia.org/wiki/Standard_deviation
-    https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-*/
-static void    sigHandlerInt(int sigNum) {
-    double  average;
-    double  stdDev = 0.0f;
-
-    if (sigNum != SIGINT)
-        return ;
-    if (!listAddr) {
-        if (fdSocket >= 0)
-            close(fdSocket);
-        exit(1);
-    }
-    if (fdSocket >= 0)
-        close(fdSocket);
-    if (roundTripGlobal.number != 0) {
-        average = roundTripGlobal.sum / roundTripGlobal.number;
-        stdDev = ftSqrt((roundTripGlobal.squareSum / roundTripGlobal.number) - (average * average));
-    }
-    printf("--- %s ping statistics ---\n", listAddr->ai_canonname);
-    printf("%u packets transmitted, %u packets received",
-        roundTripGlobal.packetSend,
-        roundTripGlobal.packetReceive);
-    if (roundTripGlobal.packetDuplicate != 0)
-        printf(", +%u duplicates", roundTripGlobal.packetDuplicate);
-    if (roundTripGlobal.packetReceive > roundTripGlobal.packetSend)
-        printf(", -- somebody is printing forged packets!\n");
-    else if (roundTripGlobal.packetSend != 0) {
-        //inetutils's ping command seem to not display packet loss
-        double loseRatePct = (((double)roundTripGlobal.packetSend - (
-            double)roundTripGlobal.packetReceive) / (double)roundTripGlobal.packetSend)
-            * 100.000000;
-        printf(", %.0d%% packet loss\n", (int)loseRatePct);
-    }
-    if  (listAddr)
-        freeaddrinfo(listAddr);
-    if (roundTripGlobal.number != 0) {
-        printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f\n",
-        roundTripGlobal.rtt[0],
-        average,
-        roundTripGlobal.rtt[1],
-        stdDev);
-        exit(0);
-    }
-    exit(1);
-}
+//https://www.gnu.org/software/libc/manual/html_node/Atomic-Types.html
+volatile sig_atomic_t   end = FALSE;
 
 /* code /usr/include/x86_64-linux-gnu/bits/in.h
     Options for use with `getsockopt' and `setsockopt' at the IP level.
@@ -82,9 +18,12 @@ static int openSocket() {
     if (!listAddr)
         exit(EXIT_FAILURE);
     struct addrinfo *mem = listAddr;
+    struct timeval new;
     int    ttl = 60;
     int     fd = -1;
 
+    new.tv_sec = 1;
+    new.tv_usec = 0;
     if (ttl == 0) {
         dprintf(2, "ping: option value too small: %d\n", ttl);
         freeaddrinfo(listAddr);
@@ -109,6 +48,12 @@ static int openSocket() {
                     close(fdSocket);
                 exit(EXIT_FAILURE);
             }
+            if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &new, sizeof(new)) != 0) {
+                dprintf(2, "%s", "Couldn't set option RCVTIMEO socket.\n");
+                if (fdSocket >= 0)
+                    close(fdSocket);
+                exit(EXIT_FAILURE);
+            }
             break ;
         }
         mem = mem->ai_next;
@@ -120,14 +65,14 @@ static void     searchBigOption(char *argv[], int argc) {
     for (int i = 1; i < argc; ++i) {
         if (argv[i] && argv[i][0] == '-' && argv[i][1] == '-') {
             if (!ft_strncmp(argv[i], "--verbose", 9))
-                    t_flags.v = TRUE;
+                t_flags.v = TRUE;
             else if (!ft_strncmp(argv[i], "--help", 6)) {
                 t_flags.interrogation = TRUE;
-                    flagInterrogation();
-                    exit(0);
+                flagInterrogation();
+                exit(0);
             } else if (!ft_strncmp(argv[i], "--usage", 7)) {
-                    flagUsage();
-                    exit(0);
+                flagUsage();
+                exit(0);
             } else {
                 dprintf(2, "%s%s%c\n", "ping: unrecognized option \'", argv[i], '\'');
                 dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
@@ -141,7 +86,8 @@ static void    searchFlags(char *argv[], int argc) {
     int j = 0;
 
     for (int i = 1; i < argc; ++i) {
-        if (argv[i][0] == '-') {
+        if (argv[i] && argv[i][0] == '-'
+            && argv[i][1] != '-') {
             for (j = 1; argv[i][j] != '\0'; j++) {
                 if (argv[i][j] == 'v')
                     t_flags.v = TRUE;
@@ -149,6 +95,7 @@ static void    searchFlags(char *argv[], int argc) {
                     t_flags.interrogation = TRUE;
                     flagInterrogation();
                     exit(0);
+                    break ;
                 }
                 else {
                     dprintf(2, "%s%c%c\n", "ping: invalid option -- \'", argv[i][j], '\'');
@@ -163,7 +110,6 @@ static void    searchFlags(char *argv[], int argc) {
 /*man getaddrinfo > man 5 services (0)*/
 static struct addrinfo *getIp(char *argv[], int argc, int *i) {
     struct addrinfo *list = 0, client;
-    //struct sockaddr_in *translate;
     int result = 0;
 
     for (; *i < argc; ++(*i)) {
@@ -185,7 +131,7 @@ static struct addrinfo *getIp(char *argv[], int argc, int *i) {
     }
     if (t_flags.interrogation == FALSE && !list) {
         dprintf(2, "%s",
-            "ping: missing host operand\nTry 'ping -?' for more information.\n");
+            "ping: missing host operand\nTry 'ping --help' or 'ping --usage' for more information.\n");
         if (list)
             freeaddrinfo(list);
         exit(64);
@@ -222,7 +168,6 @@ int main(int argc, char *argv[]) {
     ft_memset(&roundTripGlobal, 0, sizeof(struct s_round_trip));
     t_flags.v = FALSE;
     t_flags.interrogation = FALSE;
-    //init round trip time
     if (getuid() != 0) {
         dprintf(2, "%s", "Please use root privileges.\n");
         return (EXIT_FAILURE);

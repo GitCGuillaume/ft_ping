@@ -1,6 +1,8 @@
 #ifndef TOOLS_H
 # define TOOLS_H
 
+#include <errno.h>
+#include <stdint.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include "netinet/ip_icmp.h"
@@ -46,6 +48,8 @@ struct s_round_trip {
     uint32_t    packetSend;
 };
 
+void    sigHandlerInt(int sigNum);
+void    signalEnd(void);
 void    exitInet(void);
 void    bitMask(uint16_t *addr, uint16_t mask, char *buff, int nb, int jump);
 void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump);
@@ -59,4 +63,5 @@ extern struct  addrinfo *listAddr;
 /*Store pings for recvMsg*/
 extern struct s_ping_memory    pingMemory[65536];
 extern struct s_round_trip  roundTripGlobal;
+extern volatile sig_atomic_t   end;
 #endif

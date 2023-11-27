@@ -204,7 +204,6 @@ static void    pingStart(int argc, char *argv[]) {
         fdSocket = openSocket();
         //next part ping here
         runIcmp();
-        printf("continue?\n");
         freeaddrinfo(listAddr);
         if (fdSocket >= 0)
             close(fdSocket);

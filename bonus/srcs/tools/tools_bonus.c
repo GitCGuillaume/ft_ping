@@ -24,6 +24,17 @@ void    sigHandlerInt(int sigNum) {
     end = TRUE;
 }
 
+void    exitInet(void) {
+    if  (listAddr) {
+        freeaddrinfo(listAddr);
+    }
+    listAddr = NULL;
+    if (fdSocket >= 0)
+        close(fdSocket);
+    fdSocket = -1;
+    exit(1);
+}
+
 /*
     https://en.wikipedia.org/wiki/Standard_deviation
     https://fr.wikipedia.org/wiki/Variance_(mathématiques)
@@ -32,6 +43,7 @@ void    sigHandlerInt(int sigNum) {
 void    signalEnd(void) {
     double  average;
     double  stdDev = 0.0f;
+
     //alarm(0);
     if (!listAddr) {
         if (fdSocket != -1) {
@@ -73,17 +85,6 @@ void    signalEnd(void) {
         stdDev);
         exit(0);
     }
-    exit(1);
-}
-
-void    exitInet(void) {
-    if  (listAddr) {
-        freeaddrinfo(listAddr);
-    }
-    listAddr = NULL;
-    if (fdSocket >= 0)
-        close(fdSocket);
-    fdSocket = -1;
     exit(1);
 }
 

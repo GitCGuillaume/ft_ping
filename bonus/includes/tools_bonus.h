@@ -60,7 +60,6 @@ struct s_round_trip {
 
 void    sigHandlerInt(int sigNum);
 void    signalEnd(void);
-void    sigHandlerInt(int sigNum);
 void    exitInet(void);
 void    timerFlagExit(struct timeval *tvB, struct timeval cpyGlobal);
 void    bitMask(uint16_t *addr, uint16_t mask, char *buff, int nb, int jump);

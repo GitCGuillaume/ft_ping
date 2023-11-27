@@ -1,11 +1,89 @@
 #include "tools.h"
 
+/*
+    Heron's method
+    https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Heron's_method
+*/
+static double   ftSqrt(double num) {
+    double x = num;
+    double old = 0.000000;
+
+    if (num < 0 || num == 0)
+        return (0.0f);
+    while (x != old){
+        old = x;
+        x = (x + num / x) / 2;
+    }
+    return (x);
+}
+
+void    sigHandlerInt(int sigNum) {
+    if (sigNum != SIGINT)
+        return ;
+    end = TRUE;
+}
+
 void    exitInet(void) {
     if  (listAddr) {
         freeaddrinfo(listAddr);
     }
+    listAddr = NULL;
     if (fdSocket >= 0)
         close(fdSocket);
+    fdSocket = -1;
+    exit(1);
+}
+
+/*
+    https://en.wikipedia.org/wiki/Standard_deviation
+    https://fr.wikipedia.org/wiki/Variance_(mathématiques)
+    Called on SIGINT signal
+*/
+void    signalEnd(void) {
+    double  average;
+    double  stdDev = 0.0f;
+
+    //alarm(0);
+    if (!listAddr) {
+        if (fdSocket != -1) {
+            close(fdSocket);
+            fdSocket = -1;
+        }
+        exit(1);
+    }
+    if (fdSocket >= 0) {
+        close(fdSocket);
+        fdSocket = -1;
+    }
+    if (roundTripGlobal.number != 0) {
+        average = roundTripGlobal.sum / roundTripGlobal.number;
+        stdDev = ftSqrt((roundTripGlobal.squareSum / roundTripGlobal.number) - (average * average));
+    }
+    printf("--- %s ping statistics ---\n", listAddr->ai_canonname);
+    printf("%u packets transmitted, %u packets received",
+        roundTripGlobal.packetSend,
+        roundTripGlobal.packetReceive);
+    if (roundTripGlobal.packetDuplicate != 0)
+        printf(", +%u duplicates", roundTripGlobal.packetDuplicate);
+    if (roundTripGlobal.packetReceive > roundTripGlobal.packetSend)
+        printf(", -- somebody is printing forged packets!\n");
+    else if (roundTripGlobal.packetSend != 0) {
+        //inetutils's ping command seem to not display packet loss
+        double loseRatePct = (((double)roundTripGlobal.packetSend - (
+            double)roundTripGlobal.packetReceive) / (double)roundTripGlobal.packetSend)
+            * 100.000000;
+        printf(", %d%% packet loss\n", (int)loseRatePct);
+    }
+    if  (listAddr)
+        freeaddrinfo(listAddr);
+    if (roundTripGlobal.number != 0) {
+        printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f\n",
+        roundTripGlobal.rtt[0],
+        average,
+        roundTripGlobal.rtt[1],
+        stdDev);
+        exit(0);
+    }
     exit(1);
 }
 
