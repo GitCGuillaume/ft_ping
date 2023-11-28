@@ -43,7 +43,7 @@ void    signalEnd(void) {
     double  average;
     double  stdDev = 0.0f;
 
-    //alarm(0);
+    alarm(0);
     if (!listAddr) {
         if (fdSocket != -1) {
             close(fdSocket);

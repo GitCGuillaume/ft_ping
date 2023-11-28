@@ -2,10 +2,13 @@
 #include "tools_bonus.h"
 
 static void    substractDelta(struct timeval elapsedEndTime, struct timeval *elapsedStartTime) {
+    if (gettimeofday(&elapsedEndTime, 0) < 0) {
+        exitInet();
+    }
     float   it_usec = t_flags.interval - (long)t_flags.interval;
     long    it_sec = (long)t_flags.interval;
     long    tv_sec = elapsedEndTime.tv_sec - elapsedStartTime->tv_sec;
-    long    tv_usec = elapsedEndTime.tv_usec - elapsedStartTime->tv_usec;
+    long    tv_usec = (elapsedEndTime.tv_usec - elapsedStartTime->tv_usec);
     long    convertUsec = (long)(it_usec * 1000000);
     long    seconds = it_sec - tv_sec;
     long    milli = convertUsec - tv_usec ;
@@ -41,9 +44,6 @@ static int    icmpGetResponse(struct timeval *elapsedStartTime) {
     msgResponse.msg_iov = msg;
     msgResponse.msg_iovlen = 1;
     int cpyErrno = errno;
-    if (gettimeofday(&elapsedEndTime, 0) < 0) {
-        exitInet();
-    }
     //now need to correct elapsed time
     substractDelta(elapsedEndTime, elapsedStartTime);
     result = recvmsg(fdSocket, &msgResponse, 0);
@@ -185,9 +185,6 @@ void    runIcmp() {
 
         while (!end && !interrupt) {
             interrupt = icmpGetResponse(&elapsedStartTime);
-            if (gettimeofday(&elapsedStartTime, 0) < 0) {
-                exitInet();
-            }
         }
     }
     if (end != TRUE) {

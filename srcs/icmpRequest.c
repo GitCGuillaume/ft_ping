@@ -1,14 +1,14 @@
 #include "ft_icmp.h"
 #include "tools.h"
 
-static void    substractDelta(struct timeval elapsedEndTime, struct timeval *elapsedStartTime) {
-    float   it_usec = 0.0f;
-    long    it_sec = 1;
-    long    tv_sec = elapsedEndTime.tv_sec - elapsedStartTime->tv_sec;
-    long    tv_usec = elapsedEndTime.tv_usec - elapsedStartTime->tv_usec;
-    long    convertUsec = (long)(it_usec * 1000000);
-    long    seconds = it_sec - tv_sec;
-    long    milli = convertUsec - tv_usec;
+ int    substractDelta(struct timeval *elapsedEndTime, struct timeval *elapsedStartTime) {
+    if (gettimeofday(elapsedEndTime, 0) < 0) {
+        exitInet();
+    }
+    long    tv_sec = elapsedEndTime->tv_sec - elapsedStartTime->tv_sec;
+    long    tv_usec = elapsedEndTime->tv_usec - elapsedStartTime->tv_usec;
+    long    seconds = 1 - tv_sec;
+    long    milli = 0 - tv_usec;
 
     //adjust seconds for every 1M MicroSeconds
     printf("s:%ld m:%ld\n", seconds, milli);
@@ -16,26 +16,38 @@ static void    substractDelta(struct timeval elapsedEndTime, struct timeval *ela
         seconds -= 1;
         milli += 1000000;
     }
-    if (seconds == 0 && milli == 0)
-        milli = 1;
-    printf("s:%ld m:%ld %f\n", seconds, milli, ((float)seconds) + ((float)milli / 1000000));
-    elapsedEndTime.tv_sec = seconds;
-    elapsedEndTime.tv_usec = milli;
-    socklen_t len = sizeof(elapsedEndTime);
-    if (setsockopt(fdSocket, SOL_SOCKET, SO_RCVTIMEO, &elapsedEndTime, len) != 0) {
+    printf("sec:%ld\n", seconds);
+    if ((seconds == 0 && milli == 0) || seconds < 0)
+    {
+        seconds = 0;
+        milli=1;
+    }
+    //return (FALSE);
+    /*if () {
+        return (FALSE);
+    }*/
+    elapsedEndTime->tv_sec = seconds;
+    elapsedEndTime->tv_usec = milli;
+    socklen_t len = sizeof(*elapsedEndTime);
+    //struct timeval a, b;
+    //gettimeofday(&a, NULL);
+    if (setsockopt(fdSocket, SOL_SOCKET, SO_RCVTIMEO, elapsedEndTime, len) != 0) {
         dprintf(2, "%s", "Couldn't set option RCVTIMEO socket.\n");
         exitInet();
     }
+    return (TRUE);
 }
 
 /* Get request response */
-static int    icmpGetResponse(struct timeval *elapsedStartTime) {
+static int    icmpGetResponse(/*struct timeval *elapsedStartTime*/) {
     char buff[ECHO_REPLY_SIZE];
-    struct timeval elapsedEndTime;
+    //struct timeval elapsedEndTime;
     struct msghdr msgResponse;
     struct iovec msg[1];
     struct timeval tvA;
     int result = -1;
+
+   // fd_set rfds;FD_ZERO(&rfds);FD_SET(fdSocket, &rfds);
 
     //init response
     ft_memset(&msgResponse, 0, sizeof(struct msghdr));
@@ -45,11 +57,10 @@ static int    icmpGetResponse(struct timeval *elapsedStartTime) {
     msgResponse.msg_iov = msg;
     msgResponse.msg_iovlen = 1;
     int cpyErrno = errno;
-    if (gettimeofday(&elapsedEndTime, 0) < 0) {
-        exitInet();
-    }
     //now need to correct elapsed time
-    substractDelta(elapsedEndTime, elapsedStartTime);
+    //float a = 0;
+    //int val = substractDelta(&elapsedEndTime, elapsedStartTime);
+    //(void)val;
     result = recvmsg(fdSocket, &msgResponse, 0);
     if (result < 0
         && errno != EWOULDBLOCK && errno != EAGAIN && errno != EINTR) {
@@ -57,10 +68,13 @@ static int    icmpGetResponse(struct timeval *elapsedStartTime) {
         dprintf(2, "ping: receiving packet: %s\n", strerror(errno));
         exitInet();
     }
-    dprintf(2, "ping: receiving packet: %s\n", strerror(errno));
-    printf("res:%d\n", result);
-    if (result == -1){
-        
+    //dprintf(2, "ping: receiving packet: %s\n", strerror(errno));
+    //printf("res:%d e:%d\n", result, errno);
+    if (result == -1) {
+      //  printf("ret\n");
+        //if (gettimeofday(elapsedStartTime, 0) < 0) {
+        //    exitInet();
+        //}
         return (TRUE);
     }
     if (!end) {
@@ -132,6 +146,43 @@ static void    displayPingHeader() {
             convertEndianess(pingMemory[0].icmp.un.echo.id));
 }
 
+void    sendPacket(int num) {
+    if (num != SIGALRM)
+        return ;
+    if (end) {
+        return ;
+    }
+    alarm(1);
+    struct timeval tvB;
+    char buff[ECHO_REQUEST_SIZE];
+    int result = -1;
+    int cpyI;
+
+    ft_memset(buff, 0, ECHO_REQUEST_SIZE);
+    cpyI = roundTripGlobal.packetSend % 65536;
+    if (cpyI == 0)
+        ft_memset(pingMemory, 0, sizeof(pingMemory));
+    initPing(&pingMemory[cpyI], cpyI);
+    //get timestamp for ping payload
+    if (gettimeofday(&tvB, 0) < 0) {
+        exitInet();
+    }
+    fillBuffer(buff, &pingMemory[cpyI], &tvB);
+    //inc nb packets and send
+    roundTripGlobal.packetSend++;
+    result = sendto(fdSocket, buff,
+        ECHO_REQUEST_SIZE, 0,
+        listAddr->ai_addr, listAddr->ai_addrlen);
+    if (result < 0) {
+        freeaddrinfo(listAddr);
+        listAddr = NULL;
+        dprintf(2, "ping: sending packet: %s\n", strerror(errno));
+        if (fdSocket >= 0)
+            close(fdSocket);
+        exit(1);
+    }
+}
+
 /*
     type + code important for internet control message protocol
     https://www.ibm.com/docs/fr/qsip/7.5?topic=applications-icmp-type-code-ids
@@ -143,14 +194,14 @@ static void    displayPingHeader() {
 void    runIcmp() {
     if (!listAddr)
         exitInet();
-    struct timeval tvB;
-    struct timeval elapsedStartTime;
+    //struct timeval tvB;
+    //struct timeval elapsedStartTime;
     char buff[ECHO_REQUEST_SIZE];
-    int result = -1;
+    //int result = -1;
     int cpyI;
 
-    //if (signal(SIGALRM, sigHandlerAlrm) == SIG_ERR)
-    //    exitInet();
+    if (signal(SIGALRM, sendPacket) == SIG_ERR)
+        exitInet();
     //init vars part
     //display ping header part
     ft_memset(buff, 0, ECHO_REQUEST_SIZE);
@@ -158,16 +209,16 @@ void    runIcmp() {
     if (cpyI == 0)
         ft_memset(pingMemory, 0, sizeof(pingMemory));
     initPing(&pingMemory[cpyI], cpyI);
+    //display ping header
     displayPingHeader();
     //end display ping header
+    sendPacket(SIGALRM);
     while (!end) {
-        ft_memset(buff, 0, ECHO_REQUEST_SIZE);
+        /*ft_memset(buff, 0, ECHO_REQUEST_SIZE);
         cpyI = roundTripGlobal.packetSend % 65536;
         if (cpyI == 0)
             ft_memset(pingMemory, 0, sizeof(pingMemory));
         initPing(&pingMemory[cpyI], cpyI);
-        //display ping header
-        
         //get timestamp for ping payload
         if (gettimeofday(&tvB, 0) < 0) {
             exitInet();
@@ -188,17 +239,17 @@ void    runIcmp() {
         }
         if (gettimeofday(&elapsedStartTime, 0) < 0) {
             exitInet();
-        }
+        }*/
         //Call another ping
         //alarm(1);
-        int interrupt = FALSE;
-
-        while (!end && !interrupt) {
-            interrupt = icmpGetResponse(&elapsedStartTime);
-            if (gettimeofday(&elapsedStartTime, 0) < 0) {
-                exitInet();
-            }
-        }
+        //int interrupt = FALSE;
+//printf("send\n");
+        //while (!end){// && !interrupt) {
+            /*interrupt =*/ icmpGetResponse(/*&elapsedStartTime*/);
+            //if (gettimeofday(&elapsedStartTime, 0) < 0) {
+            //    exitInet();
+            //}
+        //}
     }
     if (end != TRUE) {
         dprintf(2, "ping: sending packet: %s\n", strerror(end));

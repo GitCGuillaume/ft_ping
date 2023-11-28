@@ -1,25 +1,6 @@
 #include "ft_icmp_bonus.h"
 #include "tools_bonus.h"
 
-static void    displayTimeExceed(struct iphdr *ip, const char *ntop, ssize_t recv) {
-    struct sockaddr_in  fqdn;
-    char host[FQDN_MAX];
-    char serv[FQDN_MAX];
-
-    ft_memset(&fqdn, 0, sizeof(fqdn));
-    ft_memset(host, 0, FQDN_MAX);
-    ft_memset(serv, 0, FQDN_MAX);
-    fqdn.sin_family = AF_INET;
-    fqdn.sin_addr.s_addr = ip->saddr;
-    const int getNameResult
-        = getnameinfo((const struct sockaddr *)&fqdn, sizeof(fqdn),
-            host, sizeof(host), serv, sizeof(serv), NI_NAMEREQD);
-    if (getNameResult != 0)
-        printf("%lu bytes from %s: ", recv, ntop);
-    else
-        printf("%lu bytes from %s (%s): ", recv, host, ntop);
-}
-
 /*to calculate ctrl+c values*/
 static void    countRoundTrip(double *milliSeconds, struct timeval *tvA,
     struct timeval *tvB) {
@@ -78,8 +59,8 @@ static struct timeval *icmpReponse(struct iphdr *ip, struct icmphdr *icmp,
     if (!ntop)
         exitInet();
     if (icmp->type != 0) {
-        displayTimeExceed(ip, ntop, recv);
-        getIcmpCode(icmp, buff, recv);
+        if (!getIcmpCode(ip, icmp, buff, recv, ntop))
+            return (tvB);
     } else {
         //check checksum
         resultChecksum = checksum((uint16_t *)buff, sizeof(*icmp) + sizeof(struct timeval) + 40);

@@ -65,6 +65,25 @@ static void    paramProb(uint8_t code) {
         printf("%s", "Bad length");
 }
 
+static void    displayTimeExceed(struct iphdr *ip, const char *ntop, ssize_t recv) {
+    struct sockaddr_in  fqdn;
+    char host[FQDN_MAX];
+    char serv[FQDN_MAX];
+
+    ft_memset(&fqdn, 0, sizeof(fqdn));
+    ft_memset(host, 0, FQDN_MAX);
+    ft_memset(serv, 0, FQDN_MAX);
+    fqdn.sin_family = AF_INET;
+    fqdn.sin_addr.s_addr = ip->saddr;
+    const int getNameResult
+        = getnameinfo((const struct sockaddr *)&fqdn, sizeof(fqdn),
+            host, sizeof(host), serv, sizeof(serv), NI_NAMEREQD);
+    if (getNameResult != 0)
+        printf("%lu bytes from %s: ", recv, ntop);
+    else
+        printf("%lu bytes from %s (%s): ", recv, host, ntop);
+}
+
 /*
     code /usr/include/netinet/ip_icmp.h
     NONE = no code
@@ -72,10 +91,11 @@ static void    paramProb(uint8_t code) {
     If an ICMP message of unknown type is received, it MUST be
          silently discarded.
 */
-void getIcmpCode(struct icmphdr *icmp, char *buff, ssize_t recv) {
+int getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
+    char *buff, ssize_t recv, const char *ntop) {
     struct sockaddr_in *translate = (struct sockaddr_in *)listAddr->ai_addr;
     if (!icmp || !translate || !buff)
-        return ;
+        return (FALSE);
     struct iphdr ipOriginal;
     struct icmphdr icmpOriginal;
 
@@ -87,8 +107,9 @@ void getIcmpCode(struct icmphdr *icmp, char *buff, ssize_t recv) {
     buff += sizeof(struct iphdr);
     parseIcmp(&icmpOriginal, buff);
     if (isReplyOk(&ipOriginal, &icmpOriginal, translate, recv) == FALSE){
-        return ;
+        return (FALSE);
     }
+    displayTimeExceed(ip, ntop, recv);
     unsigned int types[19] = {
         NONE, NONE, NONE,
         ICMP_DEST_UNREACH, ICMP_SOURCE_QUENCH,
@@ -123,4 +144,5 @@ void getIcmpCode(struct icmphdr *icmp, char *buff, ssize_t recv) {
         headerDumpData(&icmpOriginal,
             ipOriginal.tot_len - sizeof(struct iphdr));
     }
+    return (TRUE);
 }
