@@ -1,6 +1,7 @@
 #include "tools_bonus.h"
 #include "ft_icmp_bonus.h"
 #include "icmpCodeTools_bonus.h"
+#include "flags_bonus.h"
 
 static void    destUnreach(uint8_t code) {
     const char *arr[16] = {

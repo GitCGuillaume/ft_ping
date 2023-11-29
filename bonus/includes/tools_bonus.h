@@ -29,16 +29,6 @@
 #define FQDN_MAX 255
 #define CONV_SEC_TO_MICR 1000000
 
-struct s_flags {
-    char    v;
-    char    interrogation;
-    uint32_t    tos;
-    uint32_t    ttl;
-    uint32_t    w;
-    ssize_t    preload;
-    double    interval;
-};
-
 /*
     dup == when packet is read for the first time, set it to TRUE
     if dup is already on TRUE, then it's a duplicate packet
@@ -69,7 +59,6 @@ uint16_t    checksum(uint16_t *hdr, size_t len);
 uint16_t    convertEndianess(uint16_t echoVal);
 
 extern int fdSocket;
-extern struct s_flags t_flags;
 extern struct  addrinfo *listAddr;
 /*Store pings for recvMsg*/
 extern struct s_ping_memory    pingMemory[65536];

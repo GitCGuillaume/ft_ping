@@ -1,6 +1,7 @@
 #include "libft.h"
 #include <stdio.h>
 #include <stdint.h>
+#include "flags_bonus.h"
 
 static void requireArgument(const char *cmd, const char *original) {
     if (!original) {
@@ -64,11 +65,12 @@ static double convertIntoDouble(uint64_t integerPart, uint64_t decimalPart,
     size_t  convert = 0;
 
     result = (double)integerPart + ((double)decimalPart / dividend);
-    convert = result * 1000000;
-    if (convert < 200000) {
+    (void)convert;(void)original;
+    //convert = result * 1000000;
+    /*if (convert < 200000) {
         dprintf(2, "ping: option value too small: %s\n", original);
         exit(1);
-    }
+    }*/
     return (result);
 }
 
@@ -142,4 +144,46 @@ uint32_t    parsePreload(const char *cmd,
         }
     }
     return (result);
+}
+
+void    parsePattern(const char *cmd,
+    const char *original, char **str) {
+    uint32_t    i = 0;
+    int8_t bitOne = 0;
+    int8_t bitTwo = 0;
+    uint8_t side = 0;
+    char result = 0;
+
+    requireArgument(cmd, original);
+    findFirstDigit(str, &i);
+    i = 0;
+    for (; *str[0] != 0; (*str)++) {
+        char c = *str[0] - '0';
+        if (c > 9) {
+            c -= 39;
+        }
+        if (c >= 16) {
+            dprintf(2, "ping: error in pattern near %s\n", str[0]);
+            exit(1);
+        }
+        if (!side) {
+            bitOne = c;
+            result = bitOne;
+            t_flags.pattern[i] = result;
+        } else {
+            bitTwo = c;
+            bitOne *= 16;
+            result = bitOne + bitTwo;
+            t_flags.pattern[i] = result;
+        }
+        side = !side;
+        if (!side)
+            ++i;
+    }
+    //to fill array and must be used as mod
+    if (side)
+        ++i;
+    for (int j = i; j < 40; j++) {
+        t_flags.pattern[j] = t_flags.pattern[j % i];
+    }
 }

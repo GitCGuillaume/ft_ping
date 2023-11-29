@@ -1,7 +1,8 @@
 #include "ft_icmp_bonus.h"
 #include "tools_bonus.h"
+#include "flags_bonus.h"
 
-static void    substractDelta(struct timeval elapsedEndTime, struct timeval *elapsedStartTime) {
+static int    substractDelta(struct timeval elapsedEndTime, struct timeval *elapsedStartTime) {
     if (gettimeofday(&elapsedEndTime, 0) < 0) {
         exitInet();
     }
@@ -18,14 +19,16 @@ static void    substractDelta(struct timeval elapsedEndTime, struct timeval *ela
         seconds -= 1;
         milli += 1000000;
     }
-    if (seconds == 0 && milli == 0)
-        milli = 1;
+    if ((seconds == 0 && milli == 0) || seconds < 0)
+        return (FALSE);
+    //milli = 1;
     elapsedEndTime.tv_sec = seconds;
     elapsedEndTime.tv_usec = milli;
     if (setsockopt(fdSocket, SOL_SOCKET, SO_RCVTIMEO, &elapsedEndTime, sizeof(elapsedEndTime)) != 0) {
         dprintf(2, "%s", "Couldn't set option RCVTIMEO socket.\n");
         exitInet();
     }
+    return (TRUE);
 }
 
 /* Get request response */
@@ -45,14 +48,23 @@ static int    icmpGetResponse(struct timeval *elapsedStartTime) {
     msgResponse.msg_iovlen = 1;
     int cpyErrno = errno;
     //now need to correct elapsed time
-    substractDelta(elapsedEndTime, elapsedStartTime);
-    result = recvmsg(fdSocket, &msgResponse, 0);
-    if (result < 0
-        && errno != EWOULDBLOCK && errno != EAGAIN && errno != EINTR) {
-        //alarm(0);
-        dprintf(2, "ping: receiving packet: %s\n", strerror(errno));
-        exitInet();
-    }
+    /*if (!*/substractDelta(elapsedEndTime, elapsedStartTime);//) {
+        result = recvmsg(fdSocket, &msgResponse, MSG_DONTWAIT);
+    /*    if (result < 0
+            && errno != EWOULDBLOCK && errno != EAGAIN && errno != EINTR) {
+            //alarm(0);
+            dprintf(2, "ping: receiving packet: %s\n", strerror(errno));
+            exitInet();
+        }
+    } else {*/
+        result = recvmsg(fdSocket, &msgResponse, 0);
+        if (result < 0
+            && errno != EWOULDBLOCK && errno != EAGAIN && errno != EINTR) {
+            //alarm(0);
+            dprintf(2, "ping: receiving packet: %s\n", strerror(errno));
+            exitInet();
+        }
+    //}
     if (end || result == -1){
         t_flags.preload = 0;
         return (TRUE);
@@ -80,12 +92,12 @@ static void    fillBuffer(char *buff, struct s_ping_memory *ping,
     const struct timeval *tvB) {
     uint8_t j = sizeof(ping->icmp) + sizeof(*tvB);
     const uint8_t max = j + 40;
-    char value = 0;
+    unsigned char value = 0;
 
     ft_memcpy(buff, &ping->icmp, sizeof(ping->icmp));
     ft_memcpy(buff + sizeof(ping->icmp), tvB, sizeof(*tvB));
     for (; j < max; ++j)
-        buff[j] = value++;
+        buff[j] = t_flags.pattern[value++];
     ping->icmp.checksum
         = checksum((uint16_t *)buff, sizeof(ping->icmp) + sizeof(*tvB) + 40);
     ft_memcpy(buff, &ping->icmp, sizeof(ping->icmp));

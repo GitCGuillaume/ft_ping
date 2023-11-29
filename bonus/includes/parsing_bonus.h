@@ -14,6 +14,7 @@ double    bigCallParseInterval(char *argv[], int i);
 uint32_t    callParseArgument(char *argv[], int i, uint32_t maxValue);
 ssize_t    callParsePreload(char *argv[], int i, uint32_t maxValue);
 double    callParseInterval(char *argv[], int i);
+void    callParsePattern(char *argv[], int i);
 
 uint32_t    parseArgument(const char *cmd,
     const char *original, char **str,
@@ -23,5 +24,7 @@ double    parseArgumentI(const char *cmd,
 uint32_t    parsePreload(const char *cmd,
     const char *original, char **str,
     uint32_t maxValue);
+void    parsePattern(const char *cmd,
+    const char *original, char **str);
 
 #endif

@@ -151,6 +151,9 @@ static void    searchFlags(char *argv[], int argc) {
                     case 'i':
                         t_flags.interval = callParseInterval(argv, i);
                         break ;
+                    case 'p':
+                        callParsePattern(argv, i);
+                        break ;
                     default:
                         dprintf(2, "%s%c%c\n", "ping: invalid option -- \'", argv[i][j], '\'');
                         dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
@@ -229,6 +232,8 @@ int main(int argc, char *argv[]) {
     t_flags.w = 0;
     t_flags.preload = 0;
     t_flags.interval = 1.0f;
+    for (int i = 0; i < 40; i++)
+        t_flags.pattern[i] = i;
     if (getuid() != 0) {
         dprintf(2, "%s", "Please use root privileges.\n");
         return (EXIT_FAILURE);

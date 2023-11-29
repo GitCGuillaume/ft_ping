@@ -99,4 +99,15 @@ double    callParseInterval(char *argv[], int i) {
     return (value);
 }
 
+void    callParsePattern(char *argv[], int i) {
+    if (findArgument(argv, i) == TRUE) {
+        parsePattern(argv[i], argv[i], &argv[i]);
+        argv[i] = NULL;
+    }
+    else {
+        parsePattern(argv[i], argv[i + 1], &argv[i + 1]);
+        argv[i + 1] = NULL;
+    }
+}
+
 /* simple search option part end */

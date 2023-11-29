@@ -1,4 +1,5 @@
 #include "tools_bonus.h"
+#include "flags_bonus.h"
 
 /*
     Heron's method

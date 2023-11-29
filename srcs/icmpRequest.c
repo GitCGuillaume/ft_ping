@@ -1,7 +1,7 @@
 #include "ft_icmp.h"
 #include "tools.h"
 
- int    substractDelta(struct timeval *elapsedEndTime, struct timeval *elapsedStartTime) {
+ static int    substractDelta(struct timeval *elapsedEndTime, struct timeval *elapsedStartTime) {
     if (gettimeofday(elapsedEndTime, 0) < 0) {
         exitInet();
     }

@@ -1,5 +1,6 @@
 #include "ft_icmp_bonus.h"
 #include "tools_bonus.h"
+#include "flags_bonus.h"
 
 /*to calculate ctrl+c values*/
 static void    countRoundTrip(double *milliSeconds, struct timeval *tvA,
@@ -76,7 +77,7 @@ static struct timeval *icmpReponse(struct iphdr *ip, struct icmphdr *icmp,
         buff += 16;
         recv -= sizeof(struct timeval) + sizeof(struct icmphdr);
         for (int i = 0; i < recv; i++) {
-            if (buff[i] != i)
+            if (buff[i] != t_flags.pattern[i])
                 return (NULL);
         }
         displayResponse(ip, icmp, ping, tvA, tvB);
