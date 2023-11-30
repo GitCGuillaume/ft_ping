@@ -57,6 +57,8 @@ void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump);
 uint16_t    convertEndianess(uint16_t echoVal);
 uint16_t    checksum(uint16_t *hdr, size_t len);
 uint16_t    convertEndianess(uint16_t echoVal);
+void    switchFlags(char *argv[], int pos, int i, int len);
+int    similarFlags(int same[9], const char *memory);
 
 extern int fdSocket;
 extern struct  addrinfo *listAddr;

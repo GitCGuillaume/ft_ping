@@ -1,6 +1,6 @@
 TOOLS_BONUS = ./bonus/srcs/tools
 
-SRCS_TOOLS_BONUS = icmpByCodeTools_bonus.c icmpTools_bonus.c tools_bonus.c
+SRCS_TOOLS_BONUS = icmpByCodeTools_bonus.c icmpTools_bonus.c toolsTwo_bonus.c tools_bonus.c
 
 SRCS_BONUS = icmpByCode_bonus.c icmpRequest_bonus.c icmpResponse_bonus.c
 
@@ -16,7 +16,7 @@ FLAGS = -Wall -Wextra -Werror
 
 #INCLUDES = -Ibonus/includes -Isrcs/libft
 
-INCLUDES_BONUS = -Ibonus/includes -Isrcs/libft#-g3 -fsanitize=address
+INCLUDES_BONUS = -Ibonus/includes -Isrcs/libft #-g3 -fsanitize=leak
 
 O_DIR_BONUS = objs_bonus
 

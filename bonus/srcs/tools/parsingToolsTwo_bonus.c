@@ -65,12 +65,13 @@ static double convertIntoDouble(uint64_t integerPart, uint64_t decimalPart,
     size_t  convert = 0;
 
     result = (double)integerPart + ((double)decimalPart / dividend);
-    (void)convert;(void)original;
-    //convert = result * 1000000;
-    /*if (convert < 200000) {
+    convert = result * 1000000;
+    //printf("co:%ld\n", convert);
+    //exit(1);
+    if (convert < 200000) {
         dprintf(2, "ping: option value too small: %s\n", original);
         exit(1);
-    }*/
+    }
     return (result);
 }
 
@@ -83,9 +84,9 @@ double    parseArgumentI(const char *cmd,
 
     requireArgument(cmd, original);
     findFirstDigit(str, &i);
-    if (!str[0][0]) {
+    /*if (!str[0][0]) {
         return (0.0f);
-    }
+    }*/
     if (str[0][i] == ',') {
         (*str) += i;
     }
@@ -153,28 +154,30 @@ void    parsePattern(const char *cmd,
     int8_t bitTwo = 0;
     uint8_t side = 0;
     char result = 0;
+    int symbol = 1;
 
     requireArgument(cmd, original);
     findFirstDigit(str, &i);
     i = 0;
     for (; *str[0] != 0; (*str)++) {
         char c = *str[0] - '0';
+
         if (c > 9) {
             c -= 39;
         }
-        if (c >= 16) {
+        if (c >= 16 || c < 0) {
             dprintf(2, "ping: error in pattern near %s\n", str[0]);
             exit(1);
         }
         if (!side) {
             bitOne = c;
             result = bitOne;
-            t_flags.pattern[i] = result;
+            t_flags.pattern[i] = result * symbol;
         } else {
             bitTwo = c;
             bitOne *= 16;
             result = bitOne + bitTwo;
-            t_flags.pattern[i] = result;
+            t_flags.pattern[i] = result * symbol;
         }
         side = !side;
         if (!side)
@@ -183,6 +186,8 @@ void    parsePattern(const char *cmd,
     //to fill array and must be used as mod
     if (side)
         ++i;
+    if (!i)
+        i = 1;
     for (int j = i; j < 40; j++) {
         t_flags.pattern[j] = t_flags.pattern[j % i];
     }

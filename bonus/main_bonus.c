@@ -73,66 +73,76 @@ static int openSocket() {
     return (fd);
 }
 
-static char    findArgumentEq(char **str, int i, int j) {
-    if (!str[i][j]) {
-        return (TRUE);
-    }
-    if (str[i][j] == '=') {
-        str[i] += j + 1;
-        return (TRUE);
-    }
-    return (FALSE);
+size_t	ftStrlenWiEqual(const char *s)
+{
+	size_t	i;
+
+	i = 0;
+	while (s[i] != '\0' && s[i] != '=')
+	{
+		i++;
+	}
+	return (i);
 }
 
-static void     searchBigOption(char *argv[], int argc) {
+static  void    searchBigOption(char *argv[], int argc) {
+    int nullable;
+    char    *memory = NULL;
+    int len;
+    int same[9];
+
+    ft_memset(&same, 0, 9 * sizeof(int));
     for (int i = 1; i < argc; ++i) {
         if (argv[i] && argv[i][0] == '-' && argv[i][1] == '-') {
-            if (!ft_strncmp(argv[i], "--verbose", 9))
-                    t_flags.v = TRUE;
-            else if(!ft_strncmp(argv[i], "--timeout", 9)
-                && findArgumentEq(argv, i, 9)
-            ) {
-                t_flags.w = bigCallParseArgument(argv, i, 9, 2147483647);
+            nullable = FALSE;
+            len = ftStrlenWiEqual(argv[i]);
+            if (len <= 9 && !ft_strncmp(argv[i], "--verbose", len)) {
+                same[0] = TRUE;
+                nullable = TRUE;
             }
-            else if(!ft_strncmp(argv[i], "--tos", 5)
-                && findArgumentEq(argv, i, 5)
-            ) {
-                t_flags.tos = bigCallParseArgument(argv, i, 5, 255);
-            } else if(!ft_strncmp(argv[i], "--ttl", 5)
-                && findArgumentEq(argv, i, 5)
-            ) {
-                t_flags.ttl = bigCallParseArgument(argv, i, 5, 255);
-            } else if (!ft_strncmp(argv[i], "--preload", 9)
-                && findArgumentEq(argv, i, 9)) {
-                t_flags.preload = bigCallParsePreload(argv, i, 2147483647);
-            } else if (!ft_strncmp(argv[i], "--interval", 10)
-                && findArgumentEq(argv, i, 10)) {
-                t_flags.interval = bigCallParseInterval(argv, i);
-            } else if (!ft_strncmp(argv[i], "--help", 6)) {
-                t_flags.interrogation = TRUE;
-                    flagInterrogation();
-                    exit(0);
-            } else if (!ft_strncmp(argv[i], "--usage", 7)) {
-                    flagUsage();
-                    exit(0);
-            } else {
-                dprintf(2, "%s%s%c\n", "ping: unrecognized option \'", argv[i], '\'');
-                dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
-                exit(64);
+            if(len <= 9 && !ft_strncmp(argv[i], "--timeout", len))
+                same[1] = TRUE;
+            if(len <= 5 && !ft_strncmp(argv[i], "--tos", len))
+                same[2] = TRUE;
+            if(len <= 5 && !ft_strncmp(argv[i], "--ttl", len))
+                same[3] = TRUE;
+            if (len <= 9 && !ft_strncmp(argv[i], "--preload", len))
+                same[4] = TRUE;
+            if (len <= 10 && !ft_strncmp(argv[i], "--interval", len))
+                same[5] = TRUE;
+            if (len <= 9 && !ft_strncmp(argv[i], "--pattern", len))
+                same[6] = TRUE;
+            if (len <= 6 && !ft_strncmp(argv[i], "--help", len)) {
+                same[7] = TRUE;
+            }
+            if (len <= 7 && !ft_strncmp(argv[i], "--usage", len)) {
+                same[8] = 8;
+            }
+            if (!memory)
+                memory = argv[i];
+            int pos = similarFlags(same, memory);
+            switchFlags(argv, pos, i, len);
+            ft_memset(&same, 0, 9 * sizeof(int));
+            if (nullable) {
+                argv[i] = NULL;
+                nullable = FALSE;
             }
         }
     }
 }
 
 static void    searchFlags(char *argv[], int argc) {
+    int nullable;
     int j;
 
     for (int i = 1; i < argc; ++i) {
         if (argv[i] && argv[i][0] == '-' && argv[i][1] != '-') {
+            nullable = FALSE;
             for (j = 1; argv[i][j] != '\0'; j++) {
                 switch (argv[i][j]) {
                     case 'v':
                         t_flags.v = TRUE;
+                        nullable = TRUE;
                         continue ;
                     case '?':
                         t_flags.interrogation = TRUE;
@@ -160,6 +170,10 @@ static void    searchFlags(char *argv[], int argc) {
                         exit(64);
                 }
             }
+            if (nullable) {
+                argv[i] = NULL;
+                nullable = FALSE;
+            }
         }
     }
 }
@@ -170,7 +184,7 @@ static struct addrinfo *getIp(char *argv[], int argc, int *i) {
     int result = 0;
 
     for (; *i < argc; ++(*i)) {
-        if (argv[*i] && argv[*i][0] != '-') {
+        if (argv[*i] /*&& argv[*i][0] != '-'*/) {
             ft_memset(&client, 0, sizeof(struct addrinfo));
             client.ai_family = AF_INET;
             client.ai_socktype = SOCK_RAW;
@@ -243,13 +257,13 @@ int main(int argc, char *argv[]) {
         exit(64);
     }
     for (int i = 1; i < argc; i++) {
-        if (cpyArgv[i][0] == '-'
+        /*if (cpyArgv[i][0] == '-'
             && cpyArgv[i][1] == '-'
             && cpyArgv[i][2] == 'v') {
             dprintf(2, "ping: option '--v' is ambiguous; possibilities: '--verbose' '--version'\n");
             dprintf(2, "Try 'ping --help' or 'ping --usage' for more information.\n");
             exit(64);
-        }
+        }*/
         if (cpyArgv[i] && cpyArgv[i][0] == '-'
             && cpyArgv[i][1] != '-') {
             searchFlags(cpyArgv, argc);

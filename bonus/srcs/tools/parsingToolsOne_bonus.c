@@ -3,6 +3,12 @@
 #include <stdint.h>
 #include "parsing_bonus.h"
 
+static void    findArgumentEq(char **str, int i, int j) {
+    if (str[i][j] == '=') {
+        str[i] += j + 1;
+    }
+}
+
 static char    findArgument(char **str, int i) {
     if (str[i][0] && str[i][1] && str[i][2]) {
         str[i] += 2;
@@ -15,6 +21,7 @@ static char    findArgument(char **str, int i) {
 uint32_t    bigCallParseArgument(char *argv[], int i, int j, uint32_t maxValue) {
     uint32_t value = 0;
 
+    findArgumentEq(argv, i, j);
     if (!argv[i][j]) {
         value = parseArgument(argv[i], argv[i + 1], &argv[i + 1], maxValue);
         argv[i + 1] = NULL;
@@ -26,10 +33,11 @@ uint32_t    bigCallParseArgument(char *argv[], int i, int j, uint32_t maxValue) 
     return (value);
 }
 
-ssize_t    bigCallParsePreload(char *argv[], int i, uint32_t maxValue) {
+ssize_t    bigCallParsePreload(char *argv[], int i, int j, uint32_t maxValue) {
     ssize_t value = 0;
 
-    if (!argv[i][9]) {
+    findArgumentEq(argv, i, j);
+    if (!argv[i][j]) {
         value = parsePreload(argv[i], argv[i + 1], &argv[i + 1], maxValue);
         argv[i + 1] = NULL;
     }
@@ -40,10 +48,11 @@ ssize_t    bigCallParsePreload(char *argv[], int i, uint32_t maxValue) {
     return (value);
 }
 
-double    bigCallParseInterval(char *argv[], int i) {
+double    bigCallParseInterval(char *argv[], int i, int j) {
     double value = 0;
 
-    if (!argv[i][10]) {
+    findArgumentEq(argv, i, j);
+    if (!argv[i][j]) {
         value = parseArgumentI(argv[i], argv[i + 1], &argv[i + 1]);
         argv[i + 1] = NULL;
     }
@@ -52,6 +61,18 @@ double    bigCallParseInterval(char *argv[], int i) {
         argv[i] = NULL;
     }
     return (value);
+}
+
+void    bigCallParsePattern(char *argv[], int i, int j) {
+    findArgumentEq(argv, i, j);
+    if (!argv[i][j]) {
+        parsePattern(argv[i], argv[i + 1], &argv[i + 1]);
+        argv[i + 1] = NULL;
+    }
+    else {
+        parsePattern(argv[i], argv[i], &argv[i]);
+        argv[i] = NULL;
+    }
 }
 
 /* searchBigOption end */

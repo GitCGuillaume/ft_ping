@@ -62,15 +62,24 @@ static int openSocket() {
 }
 
 static void     searchBigOption(char *argv[], int argc) {
+    int nullable = FALSE;
+    int len = 0;
+
     for (int i = 1; i < argc; ++i) {
         if (argv[i] && argv[i][0] == '-' && argv[i][1] == '-') {
-            if (!ft_strncmp(argv[i], "--verbose", 9))
+            len = ft_strlen(argv[i]);
+            if (len == 2 && !ft_strncmp(argv[i], "--", len)) {
+                nullable = TRUE;
+            }
+            else if (!ft_strncmp(argv[i], "--verbose", len)) {
+                nullable = TRUE;
                 t_flags.v = TRUE;
-            else if (!ft_strncmp(argv[i], "--help", 6)) {
+            }
+            else if (!ft_strncmp(argv[i], "--help", len)) {
                 t_flags.interrogation = TRUE;
                 flagInterrogation();
                 exit(0);
-            } else if (!ft_strncmp(argv[i], "--usage", 7)) {
+            } else if (!ft_strncmp(argv[i], "--usage", len)) {
                 flagUsage();
                 exit(0);
             } else {
@@ -78,19 +87,26 @@ static void     searchBigOption(char *argv[], int argc) {
                 dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
                 exit(64);
             }
+            if (nullable) {
+                argv[i] = NULL;
+                nullable = FALSE;
+            }
         }
     }
 }
 
 static void    searchFlags(char *argv[], int argc) {
     int j = 0;
+    int nullable = FALSE;
 
     for (int i = 1; i < argc; ++i) {
         if (argv[i] && argv[i][0] == '-'
             && argv[i][1] != '-') {
             for (j = 1; argv[i][j] != '\0'; j++) {
-                if (argv[i][j] == 'v')
+                if (argv[i][j] == 'v') {
                     t_flags.v = TRUE;
+                    nullable = TRUE;
+                }
                 else if (argv[i][j] == '?') {
                     t_flags.interrogation = TRUE;
                     flagInterrogation();
@@ -103,6 +119,10 @@ static void    searchFlags(char *argv[], int argc) {
                     exit(64);
                 }
             }
+            if (nullable) {
+                argv[i] = NULL;
+                nullable = FALSE;
+            }
         }
     }
 }
@@ -113,7 +133,7 @@ static struct addrinfo *getIp(char *argv[], int argc, int *i) {
     int result = 0;
 
     for (; *i < argc; ++(*i)) {
-        if (argv[*i] && argv[*i][0] != '-') {
+        if (argv[*i]/* && argv[*i][0] != '-'*/) {
             ft_memset(&client, 0, sizeof(struct addrinfo));
             client.ai_family = AF_INET;
             client.ai_socktype = SOCK_RAW;
@@ -177,13 +197,6 @@ int main(int argc, char *argv[]) {
         exit(64);
     }
     for (int i = 1; i < argc; i++) {
-        if (cpyArgv[i][0] == '-'
-            && cpyArgv[i][1] == '-'
-            && cpyArgv[i][2] == 'v') {
-            dprintf(2, "ping: option '--v' is ambiguous; possibilities: '--verbose' '--version'\n");
-            dprintf(2, "Try 'ping --help' or 'ping --usage' for more information.\n");
-            exit(64);
-        }
         if (cpyArgv[i] && cpyArgv[i][0] == '-'
             && cpyArgv[i][1] != '-') {
             searchFlags(cpyArgv, argc);

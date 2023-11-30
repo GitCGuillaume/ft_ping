@@ -1,7 +1,7 @@
 #include "ft_icmp.h"
 #include "tools.h"
 
- static int    substractDelta(struct timeval *elapsedEndTime, struct timeval *elapsedStartTime) {
+ /*static int    substractDelta(struct timeval *elapsedEndTime, struct timeval *elapsedStartTime) {
     if (gettimeofday(elapsedEndTime, 0) < 0) {
         exitInet();
     }
@@ -23,10 +23,11 @@
         milli=1;
     }
     //return (FALSE);
+    */
     /*if () {
         return (FALSE);
     }*/
-    elapsedEndTime->tv_sec = seconds;
+    /*elapsedEndTime->tv_sec = seconds;
     elapsedEndTime->tv_usec = milli;
     socklen_t len = sizeof(*elapsedEndTime);
     //struct timeval a, b;
@@ -37,7 +38,7 @@
     }
     return (TRUE);
 }
-
+*/
 /* Get request response */
 static int    icmpGetResponse(/*struct timeval *elapsedStartTime*/) {
     char buff[ECHO_REPLY_SIZE];

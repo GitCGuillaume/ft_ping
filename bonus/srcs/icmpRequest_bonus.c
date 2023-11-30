@@ -2,7 +2,7 @@
 #include "tools_bonus.h"
 #include "flags_bonus.h"
 
-static int    substractDelta(struct timeval elapsedEndTime, struct timeval *elapsedStartTime) {
+/*static int    substractDelta(struct timeval elapsedEndTime, struct timeval *elapsedStartTime) {
     if (gettimeofday(&elapsedEndTime, 0) < 0) {
         exitInet();
     }
@@ -30,11 +30,13 @@ static int    substractDelta(struct timeval elapsedEndTime, struct timeval *elap
     }
     return (TRUE);
 }
+*/
 
 /* Get request response */
 static int    icmpGetResponse(struct timeval *elapsedStartTime) {
     char buff[ECHO_REPLY_SIZE];
-    struct timeval elapsedEndTime;
+    (void)elapsedStartTime;
+   // struct timeval elapsedEndTime;
     struct msghdr msgResponse;
     struct iovec msg[1];
     struct timeval tvA;
@@ -48,15 +50,16 @@ static int    icmpGetResponse(struct timeval *elapsedStartTime) {
     msgResponse.msg_iovlen = 1;
     int cpyErrno = errno;
     //now need to correct elapsed time
-    /*if (!*/substractDelta(elapsedEndTime, elapsedStartTime);//) {
+    /*if (!substractDelta(elapsedEndTime, elapsedStartTime)) {
         result = recvmsg(fdSocket, &msgResponse, MSG_DONTWAIT);
-    /*    if (result < 0
+        if (result < 0
             && errno != EWOULDBLOCK && errno != EAGAIN && errno != EINTR) {
             //alarm(0);
             dprintf(2, "ping: receiving packet: %s\n", strerror(errno));
             exitInet();
         }
-    } else {*/
+    } else {
+    */
         result = recvmsg(fdSocket, &msgResponse, 0);
         if (result < 0
             && errno != EWOULDBLOCK && errno != EAGAIN && errno != EINTR) {
