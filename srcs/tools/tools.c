@@ -60,11 +60,11 @@ void    signalEnd(void) {
         stdDev = ftSqrt((roundTripGlobal.squareSum / roundTripGlobal.number) - (average * average));
     }
     printf("--- %s ping statistics ---\n", listAddr->ai_canonname);
-    printf("%u packets transmitted, %u packets received",
+    printf("%lu packets transmitted, %lu packets received",
         roundTripGlobal.packetSend,
         roundTripGlobal.packetReceive);
     if (roundTripGlobal.packetDuplicate != 0)
-        printf(", +%u duplicates", roundTripGlobal.packetDuplicate);
+        printf(", +%lu duplicates", roundTripGlobal.packetDuplicate);
     if (roundTripGlobal.packetReceive > roundTripGlobal.packetSend)
         printf(", -- somebody is printing forged packets!\n");
     else if (roundTripGlobal.packetSend != 0) {

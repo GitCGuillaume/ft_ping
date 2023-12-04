@@ -24,6 +24,7 @@ uint32_t    bigCallParseArgument(char *argv[], int i, int j, uint32_t maxValue) 
     findArgumentEq(argv, i, j);
     if (!argv[i][j]) {
         value = parseArgument(argv[i], argv[i + 1], &argv[i + 1], maxValue);
+        argv[i] = NULL;
         argv[i + 1] = NULL;
     }
     else {
@@ -39,6 +40,7 @@ ssize_t    bigCallParsePreload(char *argv[], int i, int j, uint32_t maxValue) {
     findArgumentEq(argv, i, j);
     if (!argv[i][j]) {
         value = parsePreload(argv[i], argv[i + 1], &argv[i + 1], maxValue);
+        argv[i] = NULL;
         argv[i + 1] = NULL;
     }
     else {
@@ -48,25 +50,11 @@ ssize_t    bigCallParsePreload(char *argv[], int i, int j, uint32_t maxValue) {
     return (value);
 }
 
-double    bigCallParseInterval(char *argv[], int i, int j) {
-    double value = 0;
-
-    findArgumentEq(argv, i, j);
-    if (!argv[i][j]) {
-        value = parseArgumentI(argv[i], argv[i + 1], &argv[i + 1]);
-        argv[i + 1] = NULL;
-    }
-    else {
-        value = parseArgumentI(argv[i], argv[i], &argv[i]);
-        argv[i] = NULL;
-    }
-    return (value);
-}
-
 void    bigCallParsePattern(char *argv[], int i, int j) {
     findArgumentEq(argv, i, j);
     if (!argv[i][j]) {
         parsePattern(argv[i], argv[i + 1], &argv[i + 1]);
+        argv[i] = NULL;
         argv[i + 1] = NULL;
     }
     else {
@@ -87,6 +75,7 @@ uint32_t    callParseArgument(char *argv[], int i, uint32_t maxValue) {
     }
     else {
         value = parseArgument(argv[i], argv[i + 1], &argv[i + 1], maxValue);
+        argv[i] = NULL;
         argv[i + 1] = NULL;
     }
     return (value);
@@ -101,20 +90,7 @@ ssize_t    callParsePreload(char *argv[], int i, uint32_t maxValue) {
     }
     else {
         value = parsePreload(argv[i], argv[i + 1], &argv[i + 1], maxValue);
-        argv[i + 1] = NULL;
-    }
-    return (value);
-}
-
-double    callParseInterval(char *argv[], int i) {
-    double value = 0.0;
-
-    if (findArgument(argv, i) == TRUE) {
-        value = parseArgumentI(argv[i], argv[i], &argv[i]);
         argv[i] = NULL;
-    }
-    else {
-        value = parseArgumentI(argv[i], argv[i + 1], &argv[i + 1]);
         argv[i + 1] = NULL;
     }
     return (value);
@@ -127,6 +103,7 @@ void    callParsePattern(char *argv[], int i) {
     }
     else {
         parsePattern(argv[i], argv[i + 1], &argv[i + 1]);
+        argv[i] = NULL;
         argv[i + 1] = NULL;
     }
 }

@@ -14,8 +14,7 @@ struct s_flags {
     uint32_t    tos;
     uint32_t    ttl;
     uint32_t    w;
-    ssize_t    preload;
-    double    interval;
+    size_t    preload;
     char    pattern[40];
 };
 

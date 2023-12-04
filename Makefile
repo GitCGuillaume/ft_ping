@@ -10,13 +10,11 @@ SRCS_MAIN = main.c
 
 NAME = ft_ping
 
-#NAME_BONUS = ft_ping_bonus
-
 GCC = gcc
 
 FLAGS = -Wall -Wextra -Werror
 
-INCLUDES = -Iincludes -Isrcs/libft
+INCLUDES = -Iincludes -Isrcs/libft #-g3 -fsanitize=address
 
 O_DIR = objs
 

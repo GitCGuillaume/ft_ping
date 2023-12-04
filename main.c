@@ -127,13 +127,16 @@ static void    searchFlags(char *argv[], int argc) {
     }
 }
 
-/*man getaddrinfo > man 5 services (0)*/
+/*
+    man getaddrinfo > man 5 services (0)
+    man icmp
+*/
 static struct addrinfo *getIp(char *argv[], int argc, int *i) {
     struct addrinfo *list = 0, client;
     int result = 0;
 
     for (; *i < argc; ++(*i)) {
-        if (argv[*i]/* && argv[*i][0] != '-'*/) {
+        if (argv[*i]) {
             ft_memset(&client, 0, sizeof(struct addrinfo));
             client.ai_family = AF_INET;
             client.ai_socktype = SOCK_RAW;

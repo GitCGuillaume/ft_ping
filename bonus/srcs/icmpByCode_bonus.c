@@ -145,5 +145,6 @@ int getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
         headerDumpData(&icmpOriginal,
             ipOriginal.tot_len - sizeof(struct iphdr));
     }
+    printf("\n");
     return (TRUE);
 }

@@ -18,16 +18,13 @@ volatile sig_atomic_t   end = FALSE;
 static int openSocket() {
     if (!listAddr)
         exit(EXIT_FAILURE);
+    struct timeval new;
     struct addrinfo *mem = listAddr;
     ssize_t    ttl = t_flags.ttl;
     int     fd = -1;
 
-    struct timeval new;
-    float it_usec = t_flags.interval - (long)t_flags.interval;
-    float it_sec = (long)t_flags.interval;
-
-    new.tv_sec = (long)it_sec;
-    new.tv_usec = (long)(it_usec * 1000000.0f) % 1000000;
+    new.tv_sec = 1;
+    new.tv_usec = 0;
     if (ttl == 0) {
         dprintf(2, "ping: option value too small: %ld\n", ttl);
         freeaddrinfo(listAddr);
@@ -89,9 +86,9 @@ static  void    searchBigOption(char *argv[], int argc) {
     int nullable;
     char    *memory = NULL;
     int len;
-    int same[9];
+    int same[8];
 
-    ft_memset(&same, 0, 9 * sizeof(int));
+    ft_memset(&same, 0, 8 * sizeof(int));
     for (int i = 1; i < argc; ++i) {
         if (argv[i] && argv[i][0] == '-' && argv[i][1] == '-') {
             nullable = FALSE;
@@ -108,21 +105,20 @@ static  void    searchBigOption(char *argv[], int argc) {
                 same[3] = TRUE;
             if (len <= 9 && !ft_strncmp(argv[i], "--preload", len))
                 same[4] = TRUE;
-            if (len <= 10 && !ft_strncmp(argv[i], "--interval", len))
-                same[5] = TRUE;
             if (len <= 9 && !ft_strncmp(argv[i], "--pattern", len))
-                same[6] = TRUE;
+                same[5] = TRUE;
             if (len <= 6 && !ft_strncmp(argv[i], "--help", len)) {
-                same[7] = TRUE;
+                same[6] = TRUE;
             }
             if (len <= 7 && !ft_strncmp(argv[i], "--usage", len)) {
-                same[8] = 8;
+                same[7] = TRUE;
             }
             if (!memory)
                 memory = argv[i];
             int pos = similarFlags(same, memory);
+            memory = NULL;
             switchFlags(argv, pos, i, len);
-            ft_memset(&same, 0, 9 * sizeof(int));
+            ft_memset(&same, 0, 8 * sizeof(int));
             if (nullable) {
                 argv[i] = NULL;
                 nullable = FALSE;
@@ -158,9 +154,6 @@ static void    searchFlags(char *argv[], int argc) {
                     case 'l':
                         t_flags.preload = callParsePreload(argv, i, 2147483647);
                         break ;
-                    case 'i':
-                        t_flags.interval = callParseInterval(argv, i);
-                        break ;
                     case 'p':
                         callParsePattern(argv, i);
                         break ;
@@ -169,6 +162,8 @@ static void    searchFlags(char *argv[], int argc) {
                         dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
                         exit(64);
                 }
+                if (!argv[i])
+                    break ;
             }
             if (nullable) {
                 argv[i] = NULL;
@@ -184,7 +179,7 @@ static struct addrinfo *getIp(char *argv[], int argc, int *i) {
     int result = 0;
 
     for (; *i < argc; ++(*i)) {
-        if (argv[*i] /*&& argv[*i][0] != '-'*/) {
+        if (argv[*i]) {
             ft_memset(&client, 0, sizeof(struct addrinfo));
             client.ai_family = AF_INET;
             client.ai_socktype = SOCK_RAW;
@@ -245,7 +240,6 @@ int main(int argc, char *argv[]) {
     t_flags.tos = 0;
     t_flags.w = 0;
     t_flags.preload = 0;
-    t_flags.interval = 1.0f;
     for (int i = 0; i < 40; i++)
         t_flags.pattern[i] = i;
     if (getuid() != 0) {
@@ -257,13 +251,6 @@ int main(int argc, char *argv[]) {
         exit(64);
     }
     for (int i = 1; i < argc; i++) {
-        /*if (cpyArgv[i][0] == '-'
-            && cpyArgv[i][1] == '-'
-            && cpyArgv[i][2] == 'v') {
-            dprintf(2, "ping: option '--v' is ambiguous; possibilities: '--verbose' '--version'\n");
-            dprintf(2, "Try 'ping --help' or 'ping --usage' for more information.\n");
-            exit(64);
-        }*/
         if (cpyArgv[i] && cpyArgv[i][0] == '-'
             && cpyArgv[i][1] != '-') {
             searchFlags(cpyArgv, argc);

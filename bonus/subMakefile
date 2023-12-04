@@ -8,13 +8,9 @@ SRCS_MAIN_BONUS = parsingToolsOne_bonus.c parsingToolsTwo_bonus.c main_bonus.c
 
 NAME_BONUS = ft_ping_bonus
 
-#NAME_BONUS = ft_ping_bonus
-
 GCC = gcc
 
 FLAGS = -Wall -Wextra -Werror
-
-#INCLUDES = -Ibonus/includes -Isrcs/libft
 
 INCLUDES_BONUS = -Ibonus/includes -Isrcs/libft #-g3 -fsanitize=leak
 

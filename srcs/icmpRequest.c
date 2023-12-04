@@ -1,54 +1,13 @@
 #include "ft_icmp.h"
 #include "tools.h"
 
- /*static int    substractDelta(struct timeval *elapsedEndTime, struct timeval *elapsedStartTime) {
-    if (gettimeofday(elapsedEndTime, 0) < 0) {
-        exitInet();
-    }
-    long    tv_sec = elapsedEndTime->tv_sec - elapsedStartTime->tv_sec;
-    long    tv_usec = elapsedEndTime->tv_usec - elapsedStartTime->tv_usec;
-    long    seconds = 1 - tv_sec;
-    long    milli = 0 - tv_usec;
-
-    //adjust seconds for every 1M MicroSeconds
-    printf("s:%ld m:%ld\n", seconds, milli);
-    while (milli < 0) {
-        seconds -= 1;
-        milli += 1000000;
-    }
-    printf("sec:%ld\n", seconds);
-    if ((seconds == 0 && milli == 0) || seconds < 0)
-    {
-        seconds = 0;
-        milli=1;
-    }
-    //return (FALSE);
-    */
-    /*if () {
-        return (FALSE);
-    }*/
-    /*elapsedEndTime->tv_sec = seconds;
-    elapsedEndTime->tv_usec = milli;
-    socklen_t len = sizeof(*elapsedEndTime);
-    //struct timeval a, b;
-    //gettimeofday(&a, NULL);
-    if (setsockopt(fdSocket, SOL_SOCKET, SO_RCVTIMEO, elapsedEndTime, len) != 0) {
-        dprintf(2, "%s", "Couldn't set option RCVTIMEO socket.\n");
-        exitInet();
-    }
-    return (TRUE);
-}
-*/
 /* Get request response */
-static int    icmpGetResponse(/*struct timeval *elapsedStartTime*/) {
+static int    icmpGetResponse(void) {
     char buff[ECHO_REPLY_SIZE];
-    //struct timeval elapsedEndTime;
     struct msghdr msgResponse;
     struct iovec msg[1];
     struct timeval tvA;
     int result = -1;
-
-   // fd_set rfds;FD_ZERO(&rfds);FD_SET(fdSocket, &rfds);
 
     //init response
     ft_memset(&msgResponse, 0, sizeof(struct msghdr));
@@ -58,28 +17,18 @@ static int    icmpGetResponse(/*struct timeval *elapsedStartTime*/) {
     msgResponse.msg_iov = msg;
     msgResponse.msg_iovlen = 1;
     int cpyErrno = errno;
-    //now need to correct elapsed time
-    //float a = 0;
-    //int val = substractDelta(&elapsedEndTime, elapsedStartTime);
-    //(void)val;
     result = recvmsg(fdSocket, &msgResponse, 0);
     if (result < 0
         && errno != EWOULDBLOCK && errno != EAGAIN && errno != EINTR) {
-        //alarm(0);
+        alarm(0);
         dprintf(2, "ping: receiving packet: %s\n", strerror(errno));
         exitInet();
     }
-    //dprintf(2, "ping: receiving packet: %s\n", strerror(errno));
-    //printf("res:%d e:%d\n", result, errno);
     if (result == -1) {
-      //  printf("ret\n");
-        //if (gettimeofday(elapsedStartTime, 0) < 0) {
-        //    exitInet();
-        //}
         return (TRUE);
     }
+    errno = cpyErrno;
     if (!end) {
-        errno = cpyErrno;
         if (gettimeofday(&tvA, 0) < 0)
             exitInet();
         //result - sizeof(struct iphdr) = whole response minus ip header (84-20)=64 
@@ -114,19 +63,6 @@ static void    fillBuffer(char *buff, struct s_ping_memory *ping,
     ft_memcpy(buff, &ping->icmp, sizeof(ping->icmp));
 }
 
-/* send ping using signal alarm */
-/*
-void    sigHandlerAlrm(int sigNum) {
-    if (sigNum != SIGALRM)
-        return ;
-    interrupt = TRUE;
-    ++nb;
-    if (end)
-	    alarm(0);
-    return ;
-}
-*/
-
 static void    displayPingHeader() {
     struct sockaddr_in *translate = (struct sockaddr_in *)listAddr->ai_addr;
     char str[INET_ADDRSTRLEN];
@@ -147,7 +83,7 @@ static void    displayPingHeader() {
             convertEndianess(pingMemory[0].icmp.un.echo.id));
 }
 
-void    sendPacket(int num) {
+static void    sendPacket(int num) {
     if (num != SIGALRM)
         return ;
     if (end) {
@@ -175,6 +111,7 @@ void    sendPacket(int num) {
         ECHO_REQUEST_SIZE, 0,
         listAddr->ai_addr, listAddr->ai_addrlen);
     if (result < 0) {
+        alarm(0);
         freeaddrinfo(listAddr);
         listAddr = NULL;
         dprintf(2, "ping: sending packet: %s\n", strerror(errno));
@@ -192,11 +129,9 @@ void    sendPacket(int num) {
     checksum is a error detection method
 */
 /* (ipv4 max)65535 - (sizeof ip)20 - (sizeof icmp)8 */
-void    runIcmp() {
+void    runIcmp(void) {
     if (!listAddr)
         exitInet();
-    //struct timeval tvB;
-    //struct timeval elapsedStartTime;
     char buff[ECHO_REQUEST_SIZE];
     //int result = -1;
     int cpyI;
@@ -204,7 +139,6 @@ void    runIcmp() {
     if (signal(SIGALRM, sendPacket) == SIG_ERR)
         exitInet();
     //init vars part
-    //display ping header part
     ft_memset(buff, 0, ECHO_REQUEST_SIZE);
     cpyI = roundTripGlobal.packetSend % 65536;
     if (cpyI == 0)
@@ -215,42 +149,7 @@ void    runIcmp() {
     //end display ping header
     sendPacket(SIGALRM);
     while (!end) {
-        /*ft_memset(buff, 0, ECHO_REQUEST_SIZE);
-        cpyI = roundTripGlobal.packetSend % 65536;
-        if (cpyI == 0)
-            ft_memset(pingMemory, 0, sizeof(pingMemory));
-        initPing(&pingMemory[cpyI], cpyI);
-        //get timestamp for ping payload
-        if (gettimeofday(&tvB, 0) < 0) {
-            exitInet();
-        }
-        fillBuffer(buff, &pingMemory[cpyI], &tvB);
-        //inc nb packets and send
-        roundTripGlobal.packetSend++;
-        result = sendto(fdSocket, buff,
-            ECHO_REQUEST_SIZE, 0,
-            listAddr->ai_addr, listAddr->ai_addrlen);
-        if (result < 0) {
-            freeaddrinfo(listAddr);
-            listAddr = NULL;
-            dprintf(2, "ping: sending packet: %s\n", strerror(errno));
-            if (fdSocket >= 0)
-                close(fdSocket);
-            exit(1);
-        }
-        if (gettimeofday(&elapsedStartTime, 0) < 0) {
-            exitInet();
-        }*/
-        //Call another ping
-        //alarm(1);
-        //int interrupt = FALSE;
-//printf("send\n");
-        //while (!end){// && !interrupt) {
-            /*interrupt =*/ icmpGetResponse(/*&elapsedStartTime*/);
-            //if (gettimeofday(&elapsedStartTime, 0) < 0) {
-            //    exitInet();
-            //}
-        //}
+        icmpGetResponse();
     }
     if (end != TRUE) {
         dprintf(2, "ping: sending packet: %s\n", strerror(end));

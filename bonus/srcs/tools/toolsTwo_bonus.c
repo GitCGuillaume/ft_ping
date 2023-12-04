@@ -20,28 +20,30 @@ void    switchFlags(char *argv[], int pos, int i, int len) {
             t_flags.preload = bigCallParsePreload(argv, i, len, 2147483647);
             break ;
         case 5:
-            t_flags.interval = bigCallParseInterval(argv, i, len);
-            break ;
-        case 6:
             bigCallParsePattern(argv, i, len);
             break ;
-        case 7:
+        case 6:
             t_flags.interrogation = TRUE;
             flagInterrogation();
             exit(0);
             break ;
-        case 8:
+        case 7:
             flagUsage();
             exit(0);
             break ;
+        default:
+            dprintf(2, "%s%s%c\n", "ping: unrecognized option \'", argv[i], '\'');
+            dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
+            exit(64);
     }
 }
 
-int    similarFlags(int same[9], const char *memory) {
+int    similarFlags(int same[8], const char *memory) {
     //display ambiguous
-    const char  *memFlag[9] = {
-        "--verbose", "--timeout", "--tos", "--ttl",
-        "--preload", "--interval", "--pattern",
+    const char  *memFlag[8] = {
+        "--verbose", "--timeout",
+        "--tos", "--ttl",
+        "--preload", "--pattern",
         "--help", "--usage"
     };
     //if > 1 error
@@ -49,15 +51,20 @@ int    similarFlags(int same[9], const char *memory) {
     //save function to launch into pos
     int pos = 0;
 
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i < 8; i++) {
         if (same[i] == TRUE) {
             ++similar;
             pos = i;
         }
     }
-    if (similar > 1) {
+    if (!similar) {
+        dprintf(2, "%s%s%c\n", "ping: unrecognized option \'", memory, '\'');
+        dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
+        exit(64);
+    }
+    else if (similar > 1) {
         printf("ping: option \'%s\' is ambiguous; possibilities:", memory);
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < 8; i++) {
             if (same[i] == TRUE) {
                 printf(" \'%s\'", memFlag[i]);
             }

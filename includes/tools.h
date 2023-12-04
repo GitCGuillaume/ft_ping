@@ -43,9 +43,9 @@ struct s_round_trip {
     double  sum;
     double  squareSum;
     size_t  number;
-    uint32_t    packetReceive;
-    uint32_t    packetDuplicate;
-    uint32_t    packetSend;
+    size_t  packetReceive;
+    size_t  packetDuplicate;
+    size_t  packetSend;
 };
 
 void    sigHandlerInt(int sigNum);

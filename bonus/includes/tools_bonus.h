@@ -43,9 +43,9 @@ struct s_round_trip {
     double  sum;
     double  squareSum;
     size_t  number;
-    uint32_t    packetReceive;
-    uint32_t    packetDuplicate;
-    uint32_t    packetSend;
+    size_t  packetReceive;
+    size_t  packetDuplicate;
+    size_t  packetSend;
 };
 
 void    sigHandlerInt(int sigNum);
@@ -58,7 +58,7 @@ uint16_t    convertEndianess(uint16_t echoVal);
 uint16_t    checksum(uint16_t *hdr, size_t len);
 uint16_t    convertEndianess(uint16_t echoVal);
 void    switchFlags(char *argv[], int pos, int i, int len);
-int    similarFlags(int same[9], const char *memory);
+int    similarFlags(int same[8], const char *memory);
 
 extern int fdSocket;
 extern struct  addrinfo *listAddr;

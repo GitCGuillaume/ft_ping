@@ -23,13 +23,9 @@ static void    countRoundTrip(double *milliSeconds, struct timeval *tvA,
 static void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
     struct s_ping_memory *ping, struct timeval *tvA,
     struct timeval *tvB) {
-    struct sockaddr_in *translate = (struct sockaddr_in *)listAddr->ai_addr;
-
+    
     if (!ip || !icmp || !tvA || !tvB)
         exitInet();
-    //Compare host ping Id/Request with client ping
-    if (translate->sin_addr.s_addr != ip->saddr)
-        return ;
     double milliSeconds = 0.000000;
     uint16_t icmpSequence = icmp->un.echo.sequence;
     countRoundTrip(&milliSeconds, tvA, tvB);
@@ -62,26 +58,23 @@ static void    icmpReponse(struct iphdr *ip, struct icmphdr *icmp,
         if (!getIcmpCode(ip, icmp, buff, recv, ntop))
             return ;
     } else {
-        //check checksum
-        resultChecksum = checksum((uint16_t *)buff, sizeof(*icmp) + sizeof(struct timeval) + 40);
-        if (resultChecksum != 0)
-            printf("checksum mismatch from %s\n", ntop);
-        printf("%lu bytes from %s: ", recv, ntop);
         ping = &pingMemory[icmp->un.echo.sequence];
         if (!ping)
             return ;
-        //check if payload has some issues
+        size_t payloadSize = recv - (sizeof(*icmp) + sizeof(struct timeval));
+        //check checksum
+        resultChecksum = checksum((uint16_t *)buff, sizeof(*icmp) + sizeof(struct timeval) + payloadSize);
+        if (resultChecksum != 0)
+            printf("checksum mismatch from %s\n", ntop);
+        const ssize_t cpyRecv = recv;
         buff += sizeof(struct icmphdr);
         tvB = (struct timeval *)buff;
-        buff += 16;
+        buff += sizeof(struct timeval);
         recv -= sizeof(struct timeval) + sizeof(struct icmphdr);
-        for (int i = 0; i < recv; i++) {
-            if (buff[i] != i)
-                return ;
-        }
+        printf("%lu bytes from %s: ", cpyRecv, ntop);
         displayResponse(ip, icmp, ping, tvA, tvB);
+        printf("\n");
     }
-    printf("\n");
 }
 
 /*
