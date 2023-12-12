@@ -5,7 +5,7 @@ double   ftSqrt(double num) {
     double x = num;
     double old = 0.0;
 
-    if (num < 0 || num == 0)
+    if (num < 0.0 || num == 0.0)
         return (0.0);
     while (x != old){
         old = x;
@@ -16,7 +16,7 @@ double   ftSqrt(double num) {
 
 
 int	main(void) {
-	double arr[] = {29.196, 10.998, 10.524};
+	double arr[] = {0.049, 0.175, 0.171};
 	double sum = 0.000000;
 	double squareSum = 0.000000;
 	double stdDev;
@@ -28,7 +28,6 @@ int	main(void) {
 	}
 	average = sum / 3;
 	stdDev = ftSqrt((squareSum / 3) - (average * average));
-	printf("d:%.90f\n", 2.0);
 	printf("%.3f %.3f %.3f\n", sum, squareSum, stdDev);
 	return (0);
 }
