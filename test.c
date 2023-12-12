@@ -3,7 +3,7 @@
 
 double   ftSqrt(double num) {
     if (num < 0.0)
-        num *= 1.0;
+        num *= -1.0;
     //x is whatever value near square root
     double x = num;
     double old = 0.0;
@@ -16,13 +16,12 @@ double   ftSqrt(double num) {
         x = (x + num / x) * 0.5;
         eqZ = (x * x) - num;
         if (eqZ < 0.0)
-            eqZ *= -1;
+            eqZ *= -1.0;
 		if (eqZ < EPSILON)
 			break ;
     }
     return (x);
 }
-
 
 int	main(void) {
 	double arr[] = {0.041, 0.178, 0.167};
