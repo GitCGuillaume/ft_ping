@@ -1,22 +1,31 @@
 #include <stdio.h>
+#define EPSILON 1.e-10
 
 double   ftSqrt(double num) {
+    if (num < 0.0)
+        num *= 1.0;
     //x is whatever value near square root
     double x = num;
     double old = 0.0;
+    double  eqZ = num;
 
     if (num < 0.0 || num == 0.0)
         return (0.0);
-    while (x != old){
+    while (x != old) {
         old = x;
-        x = (x + num / x) / 2.0;
+        x = (x + num / x) * 0.5;
+        eqZ = (x * x) - num;
+        if (eqZ < 0.0)
+            eqZ *= -1;
+		if (eqZ < EPSILON)
+			break ;
     }
     return (x);
 }
 
 
 int	main(void) {
-	double arr[] = {0.049, 0.175, 0.171};
+	double arr[] = {0.042, 0.151, 0.173};
 	double sum = 0.000000;
 	double squareSum = 0.000000;
 	double stdDev;
@@ -28,6 +37,7 @@ int	main(void) {
 	}
 	average = sum / 3;
 	stdDev = ftSqrt((squareSum / 3) - (average * average));
-	printf("%.3f %.3f %.3f\n", sum, squareSum, stdDev);
+	stdDev = ftSqrt(0.0000000001);
+	printf("%.3f %.3f %.5f\n", sum, squareSum, stdDev);
 	return (0);
 }
