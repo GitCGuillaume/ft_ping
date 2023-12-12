@@ -25,7 +25,7 @@ double   ftSqrt(double num) {
 
 
 int	main(void) {
-	double arr[] = {0.042, 0.151, 0.173};
+	double arr[] = {0.041, 0.178, 0.167};
 	double sum = 0.000000;
 	double squareSum = 0.000000;
 	double stdDev;
@@ -37,7 +37,6 @@ int	main(void) {
 	}
 	average = sum / 3;
 	stdDev = ftSqrt((squareSum / 3) - (average * average));
-	stdDev = ftSqrt(0.0000000001);
-	printf("%.3f %.3f %.5f\n", sum, squareSum, stdDev);
+	printf("%.3f %.3f %.3f\n", sum, squareSum, stdDev);
 	return (0);
 }
