@@ -8,6 +8,9 @@
     #define FALSE 0
 #endif
 
+#include <stdint.h>
+#include <stddef.h>
+
 struct s_flags {
     char    v;
     char    interrogation;
@@ -16,6 +19,7 @@ struct s_flags {
     uint32_t    w;
     size_t    preload;
     char    pattern[40];
+    char    ttlActivate;
 };
 
 void    flagInterrogation(void);

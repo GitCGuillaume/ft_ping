@@ -9,7 +9,7 @@ static void    countRoundTrip(double *milliSeconds, struct timeval *tvA,
     if (tvB->tv_sec && tvB->tv_usec) {
         time_t seconds = tvA->tv_sec - tvB->tv_sec;
         suseconds_t microSeconds = tvA->tv_usec - tvB->tv_usec;
-        *milliSeconds = (seconds * 1000.000000) + (microSeconds / 1000.000000);
+        *milliSeconds = (seconds * 1000.0) + (microSeconds / 1000.0);
 
         roundTripGlobal.sum += *milliSeconds;
         roundTripGlobal.squareSum += (*milliSeconds * *milliSeconds);
@@ -27,8 +27,8 @@ static void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
 
     if (!ip || !icmp || !tvA || !tvB)
         exitInet();
-    double milliSeconds = 0.000000;
-    uint16_t icmpSequence = icmp->un.echo.sequence;
+    double milliSeconds = 0.0;
+    uint16_t icmpSequence = ntohs(icmp->un.echo.sequence);
     countRoundTrip(&milliSeconds, tvA, tvB);
     printf("icmp_seq=%u ttl=%u",
         icmpSequence, ip->ttl);
@@ -41,12 +41,13 @@ static void    displayResponse(struct iphdr *ip, struct icmphdr *icmp,
         roundTripGlobal.packetReceive += 1;
     }
     ping->dup = TRUE;
+    printf("\n");
 }
 
-static struct timeval *icmpReponse(struct iphdr *ip, struct icmphdr *icmp,
+static int icmpReponse(struct iphdr *ip, struct icmphdr *icmp,
     ssize_t recv, struct timeval *tvA,
     char *buff) {
-    struct timeval *tvB = NULL;
+    struct timeval tvB;
     struct s_ping_memory *ping = 0;
     char dest[INET_ADDRSTRLEN];
     uint16_t resultChecksum;
@@ -57,11 +58,11 @@ static struct timeval *icmpReponse(struct iphdr *ip, struct icmphdr *icmp,
         exitInet();
     if (icmp->type != 0) {
         if (!getIcmpCode(ip, icmp, buff, recv, ntop))
-            return (tvB);
+            return (FALSE);
     } else {
-        ping = &pingMemory[icmp->un.echo.sequence];
+        ping = &pingMemory[ntohs(icmp->un.echo.sequence)];
         if (!ping)
-            return (NULL);
+            return (FALSE);
         size_t payloadSize = recv - (sizeof(*icmp) + sizeof(struct timeval));
         //check checksum
         resultChecksum = checksum((uint16_t *)buff, sizeof(*icmp) + sizeof(struct timeval) + payloadSize);
@@ -69,14 +70,15 @@ static struct timeval *icmpReponse(struct iphdr *ip, struct icmphdr *icmp,
             printf("checksum mismatch from %s\n", ntop);
         const ssize_t cpyRecv = recv;
         buff += sizeof(struct icmphdr);
-        tvB = (struct timeval *)buff;
-        buff += sizeof(struct timeval);
+        ft_memcpy(&tvB.tv_sec, buff, sizeof(time_t));
+        buff += sizeof(time_t);
+        ft_memcpy(&tvB.tv_usec, buff, sizeof(suseconds_t));
         recv -= sizeof(struct timeval) + sizeof(struct icmphdr);
         printf("%lu bytes from %s: ", cpyRecv, ntop);
-        displayResponse(ip, icmp, ping, tvA, tvB);
-        printf("\n");
+        displayResponse(ip, icmp, ping, tvA, &tvB);
+        return (TRUE);
     }
-    return (tvB);
+    return (TRUE);
 }
 
 /*
@@ -93,31 +95,31 @@ void    icmpInitResponse(struct msghdr *msg, ssize_t recv,
         exitInet();
     struct iovec *iov = msg->msg_iov;
     struct iphdr    *ip = NULL;
-    struct icmphdr  icmp;
+    struct icmphdr  *icmp = NULL;
     char *buff = iov->iov_base;
     struct s_ping_memory *ping = 0;
 
     /* Get IPv4 from buffer  */
     ip = (struct iphdr *)buff;
-    buff += 20;
+    buff += sizeof(struct iphdr);
     /* Get Icmp from buffer */
-    parseIcmp(&icmp, buff);
-    if (icmp.type > 18 || icmp.type == 8)
+    icmp = (struct icmphdr *)buff;
+    if (icmp->type > 18 || icmp->type == 8)
         return ;
-    if (icmp.type == 0 && icmp.code == 0) {
-        ping = &pingMemory[icmp.un.echo.sequence];
+    if (icmp->type == 0 && icmp->code == 0) {
+        ping = &pingMemory[ntohs(icmp->un.echo.sequence)];
         if (!ping)
             return ;
-        const uint16_t initialId = convertEndianess(pingMemory[0].icmp.un.echo.id);
-        const uint16_t idRequest = icmp.un.echo.id;
+        const uint16_t initialId = ntohs(pingMemory[0].icmp.un.echo.id);
+        const uint16_t idRequest = ntohs(icmp->un.echo.id);
         if (initialId != idRequest)
             return ;
     }
-    struct timeval *tvB = icmpReponse(ip, &icmp, recv,
+    int ret  = icmpReponse(ip, icmp, recv,
         tvA, buff);
-    if (!tvB)
+    if (!ret)
         return ;
-    if (icmp.type != 8) {
+    if (icmp->type != 8) {
         if (t_flags.preload == 0)
             return ;
         --t_flags.preload;

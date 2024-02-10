@@ -18,15 +18,14 @@
 
 #define TRUE 1
 #define FALSE 0
+#ifndef MAXDNAME
+    #define MAXDNAME 1025
+#endif
+#define STOP 2
 #define NONE 20
 #define ICMP 1
 #define STDERR 2
-#define FQDN_MAX 255
-
-struct s_flags {
-    char v;
-    char interrogation;
-};
+#define EPSILON 1.e-10
 
 /*
     dup == when packet is read for the first time, set it to TRUE
@@ -51,14 +50,9 @@ struct s_round_trip {
 void    sigHandlerInt(int sigNum);
 void    signalEnd(void);
 void    exitInet(void);
-void    bitMask(uint16_t *addr, uint16_t mask, char *buff, int nb, int jump);
-void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump);
-uint16_t    convertEndianess(uint16_t echoVal);
 uint16_t    checksum(uint16_t *hdr, size_t len);
-uint16_t    convertEndianess(uint16_t echoVal);
 
 extern int fdSocket;
-extern struct s_flags t_flags;
 extern struct  addrinfo *listAddr;
 /*Store pings for recvMsg*/
 extern struct s_ping_memory    pingMemory[65536];

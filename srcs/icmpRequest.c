@@ -1,9 +1,12 @@
 #include "ft_icmp.h"
 #include "tools.h"
+#include "flags.h"
+
+static sig_atomic_t errSignal = FALSE;
 
 /* Get request response */
 static int    icmpGetResponse(void) {
-    char buff[ECHO_REPLY_SIZE];
+    char buff[ECHO_REPLY_SIZE] = {0};
     struct msghdr msgResponse;
     struct iovec msg[1];
     struct timeval tvA;
@@ -11,7 +14,6 @@ static int    icmpGetResponse(void) {
 
     //init response
     ft_memset(&msgResponse, 0, sizeof(struct msghdr));
-    ft_memset(buff, 0, ECHO_REPLY_SIZE);
     msg[0].iov_base = buff;
     msg[0].iov_len = sizeof(buff);
     msgResponse.msg_iov = msg;
@@ -79,16 +81,13 @@ static void    displayPingHeader() {
         printf("\n");
     else
         printf(", id 0x%04x = %u\n",
-            convertEndianess(pingMemory[0].icmp.un.echo.id),
-            convertEndianess(pingMemory[0].icmp.un.echo.id));
+            ntohs(pingMemory[0].icmp.un.echo.id),
+            ntohs(pingMemory[0].icmp.un.echo.id));
 }
 
 static void    sendPacket(int num) {
     if (num != SIGALRM)
         return ;
-    if (end) {
-        return ;
-    }
     alarm(1);
     struct timeval tvB;
     char buff[ECHO_REQUEST_SIZE];
@@ -112,12 +111,8 @@ static void    sendPacket(int num) {
         listAddr->ai_addr, listAddr->ai_addrlen);
     if (result < 0) {
         alarm(0);
-        freeaddrinfo(listAddr);
-        listAddr = NULL;
-        dprintf(2, "ping: sending packet: %s\n", strerror(errno));
-        if (fdSocket >= 0)
-            close(fdSocket);
-        exit(1);
+        errSignal = TRUE;
+        sigHandlerInt(SIGINT);
     }
 }
 
@@ -133,7 +128,6 @@ void    runIcmp(void) {
     if (!listAddr)
         exitInet();
     char buff[ECHO_REQUEST_SIZE];
-    //int result = -1;
     int cpyI;
 
     if (signal(SIGALRM, sendPacket) == SIG_ERR)
@@ -151,9 +145,8 @@ void    runIcmp(void) {
     while (!end) {
         icmpGetResponse();
     }
-    if (end != TRUE) {
-        dprintf(2, "ping: sending packet: %s\n", strerror(end));
+    if (errSignal) {
+        dprintf(2, "ping: sending packet: %s\n", strerror(errno));
         exitInet();
     }
-    signalEnd();
 }

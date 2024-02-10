@@ -2,82 +2,17 @@
 #include "ft_icmp.h"
 #include "icmpCodeTools.h"
 
-static void    destUnreach(uint8_t code) {
-    const char *arr[16] = {
-        "Destination Net Unreachable", "Destination Host Unreachable", "Destination Protocol Unreachable",
-        "Destination Port Unreachable", "Fragmentation needed and DF set", "Source Route Failed",
-        "Network Unknown", "Host Unknown", "Host Isolated",
-        "Communication With Network Is Adminitratively Prohibited",
-        "Communication With Host Is Adminitratively Prohibited",
-        "Destination Network Unreachable At This TOS",
-        "Destination Host Unreachable At This TOS",
-        "Packet Filtered", "Precedence Violation", "Precedence Cutoff"
-    };
-    int i;
-
-    for (i = 0; i < 16; ++i) {
-        if (i == code)
-            break ;
-    }
-    if (i != 16)
-        printf("%s", arr[i]);
-}
-
-/* Deprecated */
-static void    sourceQuench(uint8_t code) {
-    if (code != 0)
-        return ;
-    printf("%s", "Source Quench");
-}
-
-static void    redirect(uint8_t code) {
-    if (code == 0)
-        printf("%s", "Redirect Network");
-    else if (code == 1)
-        printf("%s", "Redirect Host");
-    else if (code == 2)
-        printf("%s", "Type of Service and Network");
-    else if (code == 3)
-        printf("%s", "Type of Service and Host");
-}
-
-static void    timeExceed(uint8_t code) {
-    const char  *arr[2] = {
-        "Time to live exceeded",
-        "Frag reassembly time exceeded"
-    };
-    int i;
-
-    for (i = 0; i < 2; ++i) {
-        if (i == code)
-            break ;
-    }
-    if (i != 2)
-        printf("%s", arr[i]);
-}
-
-static void    paramProb(uint8_t code) {
-    if (code == 0)
-        printf("%s", "Pointer indicate the error");
-    else if (code == 1)
-        printf("%s", "Required option is missing");
-    else if (code == 2)
-        printf("%s", "Bad length");
-}
-
-static void    displayTimeExceed(struct iphdr *ip, const char *ntop, ssize_t recv) {
+static void    displayFqdn(struct iphdr *ip, const char *ntop, ssize_t recv) {
     struct sockaddr_in  fqdn;
-    char host[FQDN_MAX];
-    char serv[FQDN_MAX];
+    char host[MAXDNAME];
 
     ft_memset(&fqdn, 0, sizeof(fqdn));
-    ft_memset(host, 0, FQDN_MAX);
-    ft_memset(serv, 0, FQDN_MAX);
+    ft_memset(host, 0, MAXDNAME);
     fqdn.sin_family = AF_INET;
     fqdn.sin_addr.s_addr = ip->saddr;
     const int getNameResult
         = getnameinfo((const struct sockaddr *)&fqdn, sizeof(fqdn),
-            host, sizeof(host), serv, sizeof(serv), NI_NAMEREQD);
+            host, sizeof(host), NULL, 0, NI_NAMEREQD);
     if (getNameResult != 0)
         printf("%lu bytes from %s: ", recv, ntop);
     else
@@ -93,57 +28,31 @@ static void    displayTimeExceed(struct iphdr *ip, const char *ntop, ssize_t rec
 */
 int getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
     char *buff, ssize_t recv, const char *ntop) {
-    struct sockaddr_in *translate = (struct sockaddr_in *)listAddr->ai_addr;
-    if (!icmp || !translate || !buff)
+    if (!icmp || !buff)
         return (FALSE);
-    struct iphdr ipOriginal;
-    struct icmphdr icmpOriginal;
+    struct iphdr *ipOriginal = NULL;
+    struct icmphdr *icmpOriginal = NULL;
+    size_t payloadSize = recv - (sizeof(*icmp) + sizeof(struct timeval));
+    uint16_t resultChecksum;
 
-    ft_memset(&ipOriginal, 0, sizeof(struct iphdr));
-    ft_memset(&icmpOriginal, 0, sizeof(struct icmphdr));
-    if (icmp->type != 12)
-        buff += sizeof(struct icmphdr);
-    parseIp(&ipOriginal, buff);
+    //check checksum
+    resultChecksum = checksum((uint16_t *)buff, sizeof(*icmp) + sizeof(struct timeval) + payloadSize);
+    buff += sizeof(struct icmphdr);
+    ipOriginal = (struct iphdr *)buff;
     buff += sizeof(struct iphdr);
-    parseIcmp(&icmpOriginal, buff);
-    if (isReplyOk(&ipOriginal, &icmpOriginal, translate, recv) == FALSE){
+    icmpOriginal = (struct icmphdr *)buff;
+    if (isReplyOk(ipOriginal, icmpOriginal, recv) == FALSE){
         return (FALSE);
     }
-    displayTimeExceed(ip, ntop, recv);
-    unsigned int types[19] = {
-        NONE, NONE, NONE,
-        ICMP_DEST_UNREACH, ICMP_SOURCE_QUENCH,
-        ICMP_REDIRECT, NONE,NONE, NONE,
-        NONE, NONE, ICMP_TIME_EXCEEDED,
-        ICMP_PARAMETERPROB, ICMP_TIMESTAMP, ICMP_TIMESTAMPREPLY,
-        ICMP_INFO_REQUEST, ICMP_INFO_REPLY, ICMP_ADDRESS,
-        ICMP_ADDRESSREPLY
-    };
-    //list of function to call from macro number
-    void    *functionArray[19] = {
-        NULL, NULL, NULL,
-        &destUnreach, &sourceQuench, &redirect,
-        NULL, NULL, NULL, NULL, NULL,
-        &timeExceed, &paramProb, NULL, NULL,
-        NULL, NULL, NULL, NULL
-    };
-    void    (*functionCall)(uint8_t) = NULL;
-    unsigned int i;
-
-    for (i = 0; i < 20; ++i) {
-        if (icmp->type == types[i]
-            && types[i] != NONE) {
-            functionCall = functionArray[i];
-            break ;
+    if (icmp->type == ICMP_DEST_UNREACH || icmp->type == ICMP_SOURCE_QUENCH
+        || icmp->type == ICMP_REDIRECT || icmp->type == ICMP_TIME_EXCEEDED
+        || icmp->type == ICMP_PARAMETERPROB) {
+        if (resultChecksum != 0) {
+            printf("checksum mismatch from %s\n", ntop);
         }
+        displayFqdn(ip, ntop, recv);
     }
-    if (functionCall)
-           functionCall(icmp->code);
-    if (t_flags.v == TRUE) {
-        headerDumpIp(&ipOriginal);
-        headerDumpData(&icmpOriginal,
-            ipOriginal.tot_len - sizeof(struct iphdr));
-    }
-    printf("\n");
+    runCode(icmp,
+        ipOriginal, icmpOriginal);
     return (TRUE);
 }

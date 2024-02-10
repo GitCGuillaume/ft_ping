@@ -2,9 +2,12 @@
 #include "tools_bonus.h"
 #include "flags_bonus.h"
 
+static struct timeval gTimer;
+static sig_atomic_t errSignal = FALSE;
+
 /* Get request response */
 static int    icmpGetResponse(void) {
-    char buff[ECHO_REPLY_SIZE];
+    char buff[ECHO_REPLY_SIZE] = {0};
     struct msghdr msgResponse;
     struct iovec msg[1];
     struct timeval tvA;
@@ -12,13 +15,11 @@ static int    icmpGetResponse(void) {
 
     //init response
     ft_memset(&msgResponse, 0, sizeof(struct msghdr));
-    ft_memset(buff, 0, ECHO_REPLY_SIZE);
     msg[0].iov_base = buff;
     msg[0].iov_len = sizeof(buff);
     msgResponse.msg_iov = msg;
     msgResponse.msg_iovlen = 1;
     int cpyErrno = errno;
-    //now need to correct elapsed time
     result = recvmsg(fdSocket, &msgResponse, 0);
     if (result < 0
         && errno != EWOULDBLOCK && errno != EAGAIN && errno != EINTR) {
@@ -36,7 +37,7 @@ static int    icmpGetResponse(void) {
             exitInet();
         //result - sizeof(struct iphdr) = whole response minus ip header (84-20)=64
         //echo reply is 64 like a standard reply from the ping inetutils2.0
-            icmpInitResponse(&msgResponse, result - sizeof(struct iphdr), &tvA);
+        icmpInitResponse(&msgResponse, result - sizeof(struct iphdr), &tvA);
     }
     return (FALSE);
 }
@@ -82,16 +83,13 @@ static void    displayPingHeader() {
         printf("\n");
     else
         printf(", id 0x%04x = %u\n",
-            convertEndianess(pingMemory[0].icmp.un.echo.id),
-            convertEndianess(pingMemory[0].icmp.un.echo.id));
+            ntohs(pingMemory[0].icmp.un.echo.id),
+            ntohs(pingMemory[0].icmp.un.echo.id));
 }
 
 static void    sendPacket(int num) {
     if (num != SIGALRM)
         return ;
-    if (end) {
-        return ;
-    }
     alarm(1);
     struct timeval tvB;
     char buff[ECHO_REQUEST_SIZE];
@@ -107,6 +105,8 @@ static void    sendPacket(int num) {
     if (gettimeofday(&tvB, 0) < 0) {
         exitInet();
     }
+    if (t_flags.w)
+        timerFlagExit(&tvB, gTimer);
     fillBuffer(buff, &pingMemory[cpyI], &tvB);
     //inc nb packets and send
     roundTripGlobal.packetSend++;
@@ -115,12 +115,8 @@ static void    sendPacket(int num) {
         listAddr->ai_addr, listAddr->ai_addrlen);
     if (result < 0) {
         alarm(0);
-        freeaddrinfo(listAddr);
-        listAddr = NULL;
-        dprintf(2, "ping: sending packet: %s\n", strerror(errno));
-        if (fdSocket >= 0)
-            close(fdSocket);
-        exit(1);
+        errSignal = TRUE;
+        sigHandlerInt(SIGINT);
     }
 }
 
@@ -135,7 +131,6 @@ static void    sendPacket(int num) {
 void    runIcmp(void) {
     if (!listAddr)
         exitInet();
-    struct timeval gTimer;
     struct timeval tvB;
     char buff[ECHO_REQUEST_SIZE];
     int result = -1;
@@ -155,8 +150,6 @@ void    runIcmp(void) {
     displayPingHeader();
     //end display ping header
     for (size_t preloadI = 0; preloadI < t_flags.preload; ++preloadI) {
-        if (end)
-            break ;
         cpyI = roundTripGlobal.packetSend % 65536;
         if (cpyI == 0)
             ft_memset(pingMemory, 0, sizeof(pingMemory));
@@ -173,7 +166,8 @@ void    runIcmp(void) {
             ECHO_REQUEST_SIZE, 0,
             listAddr->ai_addr, listAddr->ai_addrlen);
         if (result < 0) {
-            freeaddrinfo(listAddr);
+            if (listAddr)
+                freeaddrinfo(listAddr);
             listAddr = NULL;
             dprintf(2, "ping: sending packet: %s\n", strerror(errno));
             if (fdSocket >= 0)
@@ -188,9 +182,8 @@ void    runIcmp(void) {
             interrupt = icmpGetResponse();
         }
     }
-    if (end != TRUE) {
-        dprintf(2, "ping: sending packet: %s\n", strerror(end));
+    if (errSignal) {
+        dprintf(2, "ping: sending packet: %s\n", strerror(errno));
         exitInet();
     }
-    signalEnd();
 }

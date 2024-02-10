@@ -5,14 +5,23 @@
     https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Heron's_method
 */
 static double   ftSqrt(double num) {
+    if (num < 0.0)
+        num *= -1.0;
+    //x is whatever value near square root
     double x = num;
-    double old = 0.000000;
+    double old = 0.0;
+    double  eqZ = num;
 
-    if (num < 0 || num == 0)
-        return (0.0f);
-    while (x != old){
+    if (num < 0.0 || num == 0.0)
+        return (0.0);
+    while (x != old) {
         old = x;
-        x = (x + num / x) / 2;
+        x = (x + num / x) * 0.5;
+        eqZ = (x * x) - num;
+        if (eqZ < 0.0)
+            eqZ *= -1.0;
+		if (eqZ < EPSILON)
+			break ;
     }
     return (x);
 }
@@ -41,7 +50,7 @@ void    exitInet(void) {
 */
 void    signalEnd(void) {
     double  average;
-    double  stdDev = 0.0f;
+    double  stdDev = 0.0;
 
     alarm(0);
     if (!listAddr) {
@@ -55,7 +64,7 @@ void    signalEnd(void) {
         close(fdSocket);
         fdSocket = -1;
     }
-    if (roundTripGlobal.number != 0) {
+    if (roundTripGlobal.packetReceive != 0) {
         average = roundTripGlobal.sum / roundTripGlobal.number;
         stdDev = ftSqrt((roundTripGlobal.squareSum / roundTripGlobal.number) - (average * average));
     }
@@ -68,23 +77,21 @@ void    signalEnd(void) {
     if (roundTripGlobal.packetReceive > roundTripGlobal.packetSend)
         printf(", -- somebody is printing forged packets!\n");
     else if (roundTripGlobal.packetSend != 0) {
-        //inetutils's ping command seem to not display packet loss
-        double loseRatePct = (((double)roundTripGlobal.packetSend - (
-            double)roundTripGlobal.packetReceive) / (double)roundTripGlobal.packetSend)
-            * 100.000000;
+        double loseRatePct = (((double)roundTripGlobal.packetSend -
+            (double)roundTripGlobal.packetReceive) / (double)roundTripGlobal.packetSend)
+            * 100.0;
         printf(", %d%% packet loss\n", (int)loseRatePct);
     }
     if  (listAddr)
         freeaddrinfo(listAddr);
-    if (roundTripGlobal.number != 0) {
-        printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f\n",
-        roundTripGlobal.rtt[0],
-        average,
-        roundTripGlobal.rtt[1],
-        stdDev);
-        exit(0);
+    listAddr = NULL;
+    if (roundTripGlobal.packetReceive != 0) {
+        printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f ms\n",
+            roundTripGlobal.rtt[0],
+            average,
+            roundTripGlobal.rtt[1],
+            stdDev);
     }
-    exit(1);
 }
 
 /*
@@ -94,30 +101,20 @@ uint16_t    checksum(uint16_t *hdr, size_t len) {
     size_t  sum = 0;
     uint8_t  minus = sizeof(uint16_t);
 
-    //1 < because unsigned on odd, better not overflow
+    //1 < because unsigned len
     while (1 < len) {
         sum += *hdr++;
         len -= minus;
     }
+    //rfc say last bit if odd, then zero bytes
     if (len != 0)
-        sum += *hdr;
+        sum += *(unsigned char *)hdr & 0xFF;
+    //if overflow > 16bits, cut in two and do a sum
+    //remove 16 bits first part and take whatever value
     while (sum >> 16) {
-        sum = (sum & 0x0000FFFF) + (sum >> 16);
+        sum = (sum >> 16) + (sum & 65535);
     }
     return (~sum);
-}
-
-/*  Convert big endian to little endian
-    0 0 1 1 1 1 1 1 >> 8 && << 8 1 0 1 1 0 0 0 1
-    0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1
-    OR
-    1 0 1 1 0 0 0 1 0 0 0 0 0 0 0 0
-    =
-    0 1 0 0 1 0 0 1 0 0 1 0 0 0 0 0
-*/
-
-uint16_t    convertEndianess(uint16_t echoVal) {
-    return (echoVal >> 8 | echoVal << 8);
 }
 
 static void    AskIntt(char *ask) {

@@ -27,6 +27,7 @@ uint32_t    parseArgument(const char *cmd,
     uint32_t maxValue) {
     uint32_t    result = 0;
     uint32_t    i = 0;
+    int neg = FALSE;
 
     requireArgument(cmd, original);
     if (!str[0][i]) {
@@ -40,13 +41,20 @@ uint32_t    parseArgument(const char *cmd,
         exit(1);
     }
     for (; *str[0] != 0; (*str)++) {
+        if (str[0][0] == '-' && str[0][1] != '-') {
+            (*str)++;
+            neg = TRUE;
+        }
         if (ft_isdigit(*str[0])) {
             result = result * 10 + *str[0] - '0';
+            if (neg)
+                result *= -1;
         } else {
             dprintf(2, "ping: invalid value (`%s\' near `%s\')\n",
                 original, str[0]);
             exit(1);
         }
+        neg = FALSE;
         if (result == 0) {
             dprintf(2, "ping: option value too small: %s\n", original);
             exit(1);
@@ -81,20 +89,23 @@ size_t    parsePreload(const char *cmd,
     return (result);
 }
 
-void    parsePattern(const char *cmd,
-    const char *original, char **str) {
-    uint32_t    i = 0;
-    int8_t bitOne = 0;
-    int8_t bitTwo = 0;
-    uint8_t side = 0;
-    char result = 0;
-    int symbol = 1;
+int8_t    patternResolver(char **str, uint8_t *minus) {
+    char c;
 
-    requireArgument(cmd, original);
-    findFirstDigit(str, &i);
-    i = 0;
-    for (; *str[0] != 0; (*str)++) {
-        char c = *str[0] - '0';
+    if (str[0][0] == '-' && str[0][1] != '-') {
+        c = ft_tolower(str[0][1]) - '0';
+        if (c > 9) {
+            c -= 39;
+        }
+        c = c * -1;
+        if (c >= 16 || !(c >= -15 && c < 0)) {
+            dprintf(2, "ping: error in pattern near %s\n", str[0]);
+            exit(1);
+        }
+        ++*str;
+        *minus = TRUE;
+    } else {
+        c = ft_tolower(*str[0]) - '0';
 
         if (c > 9) {
             c -= 39;
@@ -103,23 +114,41 @@ void    parsePattern(const char *cmd,
             dprintf(2, "ping: error in pattern near %s\n", str[0]);
             exit(1);
         }
-        if (!side) {
-            bitOne = c;
-            result = bitOne;
-            t_flags.pattern[i] = result * symbol;
-        } else {
-            bitTwo = c;
-            bitOne *= 16;
-            result = bitOne + bitTwo;
-            t_flags.pattern[i] = result * symbol;
-        }
-        side = !side;
-        if (!side)
-            ++i;
     }
-    //to fill array and must be used as mod
-    if (side)
+    return (c);
+}
+
+void    parsePattern(const char *cmd,
+    const char *original, char **str) {
+    uint32_t    i = 0;
+    int8_t bitOne = 0;
+    uint8_t minus = FALSE;
+    char c;
+
+    requireArgument(cmd, original);
+    findFirstDigit(str, &i);
+    i = 0;
+    for (; *str[0] != 0; (*str)++) {
+        c = patternResolver(str, &minus);
+        if (minus == TRUE) {
+            t_flags.pattern[i++] = c;
+            minus = FALSE;
+            bitOne = 0;
+        } else {
+            if (!bitOne) {
+                bitOne = c;
+                t_flags.pattern[i] = c;
+            }
+            else {
+                t_flags.pattern[i] = (bitOne * 16) + c;
+                bitOne = 0;
+                ++i;
+            }
+        }
+    }
+    if (bitOne)
         ++i;
+    //to fill array and must be used as mod
     if (!i)
         i = 1;
     for (int j = i; j < 40; j++) {

@@ -8,19 +8,20 @@ void    switchFlags(char *argv[], int pos, int i, int len) {
             t_flags.v = TRUE;
             break ;
         case 1:
-            t_flags.w = bigCallParseArgument(argv, i, len, 2147483647);
+            t_flags.w = bigCallParseArgument("--timeout", argv, i, len, 2147483647);
             break ;
         case 2:
-            t_flags.tos = bigCallParseArgument(argv, i, len, 255);
+            t_flags.tos = bigCallParseArgument("--tos", argv, i, len, 255);
             break ;
         case 3:
-            t_flags.ttl = bigCallParseArgument(argv, i, len, 255);
+            t_flags.ttl = bigCallParseArgument("--ttl", argv, i, len, 255);
+            t_flags.ttlActivate = TRUE;
             break ;
         case 4:
-            t_flags.preload = bigCallParsePreload(argv, i, len, 2147483647);
+            t_flags.preload = bigCallParsePreload("--preload", argv, i, len, 2147483647);
             break ;
         case 5:
-            bigCallParsePattern(argv, i, len);
+            bigCallParsePattern("--pattern", argv, i, len);
             break ;
         case 6:
             t_flags.interrogation = TRUE;

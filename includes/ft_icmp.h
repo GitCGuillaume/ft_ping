@@ -18,8 +18,6 @@
 void    runIcmp(void);
 int getIcmpCode(struct iphdr *ip, struct icmphdr *icmp,
     char *buff, ssize_t recv, const char *ntop);
-void    parseIp(struct iphdr *ip, char *buff);
-void    parseIcmp(struct icmphdr  *icmp, char *buff);
 //icmpReponse.c
 void    icmpInitResponse(struct msghdr *msg, ssize_t recv,
     struct timeval *tvA);

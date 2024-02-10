@@ -14,8 +14,10 @@ volatile sig_atomic_t   end = FALSE;
 /* code /usr/include/x86_64-linux-gnu/bits/in.h
     Options for use with `getsockopt' and `setsockopt' at the IP level.
     IP_TTL...
+    man 7 ip
+    man setsockopt
  */
-static int openSocket() {
+static int openSocket(void) {
     if (!listAddr)
         exit(EXIT_FAILURE);
     struct timeval new;
@@ -43,11 +45,13 @@ static int openSocket() {
             exit(EXIT_FAILURE);
         }
         else if (fd >= 0){
-            if (setsockopt(fd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) != 0) {
-                dprintf(2, "%s", "Couldn't set option TTL socket.\n");
-                if (fdSocket >= 0)
-                    close(fdSocket);
-                exit(EXIT_FAILURE);
+            if (t_flags.ttlActivate) {
+                if (setsockopt(fd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) != 0) {
+                    dprintf(2, "%s", "Couldn't set option TTL socket.\n");
+                    if (fdSocket >= 0)
+                        close(fdSocket);
+                    exit(EXIT_FAILURE);
+                }
             }
             if (t_flags.tos != 0) {
                 if (setsockopt(fd, IPPROTO_IP, IP_TOS, &t_flags.tos, sizeof(t_flags.tos)) != 0) {  
@@ -82,88 +86,96 @@ size_t	ftStrlenWiEqual(const char *s)
 	return (i);
 }
 
-static  void    searchBigOption(char *argv[], int argc) {
-    int nullable;
+static int doubleFlag(char **argv, int i) {
+    int nullable = FALSE;
     char    *memory = NULL;
     int len;
     int same[8];
 
     ft_memset(&same, 0, 8 * sizeof(int));
-    for (int i = 1; i < argc; ++i) {
-        if (argv[i] && argv[i][0] == '-' && argv[i][1] == '-') {
-            nullable = FALSE;
-            len = ftStrlenWiEqual(argv[i]);
-            if (len <= 9 && !ft_strncmp(argv[i], "--verbose", len)) {
-                same[0] = TRUE;
+    len = ftStrlenWiEqual(argv[i]);
+    if (len == 2 && !ft_strncmp(argv[i], "--", len)) {
+        argv[i] = NULL;
+        return (STOP);
+    }
+    if (len <= 9 && !ft_strncmp(argv[i], "--verbose", len)) {
+        same[0] = TRUE;
+        nullable = TRUE;
+    }
+    if(len <= 9 && !ft_strncmp(argv[i], "--timeout", len))
+        same[1] = TRUE;
+    if(len <= 5 && !ft_strncmp(argv[i], "--tos", len))
+        same[2] = TRUE;
+    if(len <= 5 && !ft_strncmp(argv[i], "--ttl", len))
+        same[3] = TRUE;
+    if (len <= 9 && !ft_strncmp(argv[i], "--preload", len))
+        same[4] = TRUE;
+    if (len <= 9 && !ft_strncmp(argv[i], "--pattern", len))
+        same[5] = TRUE;
+    if (len <= 6 && !ft_strncmp(argv[i], "--help", len)) {
+        same[6] = TRUE;
+    }
+    if (len <= 7 && !ft_strncmp(argv[i], "--usage", len)) {
+        same[7] = TRUE;
+    }
+    if (!memory)
+        memory = argv[i];
+    int pos = similarFlags(same, memory);
+    memory = NULL;
+    switchFlags(argv, pos, i, len);
+    ft_memset(&same, 0, 8 * sizeof(int));
+    return (nullable);
+}
+
+static int singleFlag(char **argv, int i) {
+    int nullable = FALSE;
+
+    for (int j = 1; argv[i][j] != '\0'; j++) {
+        switch (argv[i][j]) {
+            case 'v':
+                t_flags.v = TRUE;
                 nullable = TRUE;
-            }
-            if(len <= 9 && !ft_strncmp(argv[i], "--timeout", len))
-                same[1] = TRUE;
-            if(len <= 5 && !ft_strncmp(argv[i], "--tos", len))
-                same[2] = TRUE;
-            if(len <= 5 && !ft_strncmp(argv[i], "--ttl", len))
-                same[3] = TRUE;
-            if (len <= 9 && !ft_strncmp(argv[i], "--preload", len))
-                same[4] = TRUE;
-            if (len <= 9 && !ft_strncmp(argv[i], "--pattern", len))
-                same[5] = TRUE;
-            if (len <= 6 && !ft_strncmp(argv[i], "--help", len)) {
-                same[6] = TRUE;
-            }
-            if (len <= 7 && !ft_strncmp(argv[i], "--usage", len)) {
-                same[7] = TRUE;
-            }
-            if (!memory)
-                memory = argv[i];
-            int pos = similarFlags(same, memory);
-            memory = NULL;
-            switchFlags(argv, pos, i, len);
-            ft_memset(&same, 0, 8 * sizeof(int));
-            if (nullable) {
-                argv[i] = NULL;
-                nullable = FALSE;
-            }
+                continue ;
+            case '?':
+                t_flags.interrogation = TRUE;
+                flagInterrogation();
+                exit(0);
+                break ;
+            case 'w':
+                t_flags.w = callParseArgument(argv, i, 2147483647);
+                break ;
+            case 'T':
+                t_flags.tos = callParseArgument(argv, i, 255);
+                break ;
+            case 'l':
+                t_flags.preload = callParsePreload(argv, i, 2147483647);
+                break ;
+            case 'p':
+                callParsePattern(argv, i);
+                break ;
+            default:
+                dprintf(2, "%s%c%c\n", "ping: invalid option -- \'", argv[i][j], '\'');
+                dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
+                exit(64);
         }
+        if (!argv[i])
+            break ;
     }
+    return (nullable);
 }
 
-static void    searchFlags(char *argv[], int argc) {
-    int nullable;
-    int j;
+static void searchFlags(char *argv[], int argc) {
+    int nullable = FALSE;
 
     for (int i = 1; i < argc; ++i) {
-        if (argv[i] && argv[i][0] == '-' && argv[i][1] != '-') {
-            nullable = FALSE;
-            for (j = 1; argv[i][j] != '\0'; j++) {
-                switch (argv[i][j]) {
-                    case 'v':
-                        t_flags.v = TRUE;
-                        nullable = TRUE;
-                        continue ;
-                    case '?':
-                        t_flags.interrogation = TRUE;
-                        flagInterrogation();
-                        exit(0);
-                        break ;
-                    case 'w':
-                        t_flags.w = callParseArgument(argv, i, 2147483647);
-                        break ;
-                    case 'T':
-                        t_flags.tos = callParseArgument(argv, i, 255);
-                        break ;
-                    case 'l':
-                        t_flags.preload = callParsePreload(argv, i, 2147483647);
-                        break ;
-                    case 'p':
-                        callParsePattern(argv, i);
-                        break ;
-                    default:
-                        dprintf(2, "%s%c%c\n", "ping: invalid option -- \'", argv[i][j], '\'');
-                        dprintf(2, "Try \'ping --help\' or \'ping --usage\' for more information.\n");
-                        exit(64);
-                }
-                if (!argv[i])
-                    break ;
+        if (argv[i]) {
+            if (argv[i][0] == '-' && argv[i][1] != '-')
+                nullable = singleFlag(argv, i);
+            else if (argv[i][0] == '-' && argv[i][1] == '-'){
+                nullable = doubleFlag(argv, i);
+            }
+            if (nullable == STOP){
+                break ;
             }
             if (nullable) {
                 argv[i] = NULL;
@@ -173,9 +185,13 @@ static void    searchFlags(char *argv[], int argc) {
     }
 }
 
-/*man getaddrinfo > man 5 services (0)*/
+/*
+    man getaddrinfo > man 5 services (0)
+    man icmp
+    man 7 raw
+*/
 static struct addrinfo *getIp(char *argv[], int argc, int *i) {
-    struct addrinfo *list = 0, client;
+    struct addrinfo *list = NULL, client;
     int result = 0;
 
     for (; *i < argc; ++(*i)) {
@@ -185,6 +201,8 @@ static struct addrinfo *getIp(char *argv[], int argc, int *i) {
             client.ai_socktype = SOCK_RAW;
             client.ai_protocol = IPPROTO_ICMP;
             client.ai_flags = AI_CANONNAME;
+            client.ai_addr = NULL;
+            client.ai_next = NULL;
             result = getaddrinfo(argv[*i], NULL, &client, &list);
             if (result != 0) {
                 dprintf(STDERR, "ping: %s\n", "unknown host");
@@ -195,17 +213,13 @@ static struct addrinfo *getIp(char *argv[], int argc, int *i) {
             break ;
         }
     }
-    if (t_flags.interrogation == FALSE && !list) {
-        dprintf(2, "%s",
-            "ping: missing host operand\nTry 'ping --help' or 'ping --usage' for more information.\n");
-        if (list)
-            freeaddrinfo(list);
-        exit(64);
-    }
     return (list);
 }
 
 static void    pingStart(int argc, char *argv[]) {
+    size_t    preload = t_flags.preload;
+    int quit = FALSE;
+    int hostFound = FALSE;
     int     i = 1;
 
     //init part
@@ -213,13 +227,32 @@ static void    pingStart(int argc, char *argv[]) {
         exitInet();
     for (; i < argc; ++i) {
         listAddr = getIp(argv, argc, &i);
+        if (listAddr && !hostFound)
+            hostFound = TRUE;
+        if (!hostFound) {
+            dprintf(2, "%s",
+            "ping: missing host operand\nTry 'ping --help' or 'ping --usage' for more information.\n");
+            if (listAddr)
+                freeaddrinfo(listAddr);
+            exit(64);
+        }
         fdSocket = openSocket();
         //next part ping here
         runIcmp();
-        freeaddrinfo(listAddr);
+        signalEnd();
+        if (!roundTripGlobal.packetReceive)
+            quit = TRUE;
+        ft_memset(pingMemory, 0, sizeof(pingMemory));
+        ft_memset(&roundTripGlobal, 0, sizeof(struct s_round_trip));
+        if (listAddr)
+            freeaddrinfo(listAddr);
+        listAddr = NULL;
         if (fdSocket >= 0)
             close(fdSocket);
+        t_flags.preload = preload;
     }
+    if (quit)
+        exit(1);
 }
 
 //ping [OPTIONS] host
@@ -236,10 +269,11 @@ int main(int argc, char *argv[]) {
     //init flags
     t_flags.v = FALSE;
     t_flags.interrogation = FALSE;
-    t_flags.ttl = 60;
+    t_flags.ttl = 64;
     t_flags.tos = 0;
     t_flags.w = 0;
     t_flags.preload = 0;
+    t_flags.ttlActivate = FALSE;
     for (int i = 0; i < 40; i++)
         t_flags.pattern[i] = i;
     if (getuid() != 0) {
@@ -250,20 +284,7 @@ int main(int argc, char *argv[]) {
         dprintf(2, "%s", "ping: missing host operand\nTry 'ping --help' or 'ping --usage' for more information.\n");
         exit(64);
     }
-    for (int i = 1; i < argc; i++) {
-        if (cpyArgv[i] && cpyArgv[i][0] == '-'
-            && cpyArgv[i][1] != '-') {
-            searchFlags(cpyArgv, argc);
-            break ;
-        }
-    }
-    for (int i = 1; i < argc; i++) {
-        if (cpyArgv[i] && cpyArgv[i][0] == '-'
-            && cpyArgv[i][1] == '-') {
-            searchBigOption(cpyArgv, argc);
-            break ;
-        }
-    }
+    searchFlags(cpyArgv, argc);
     pingStart(argc, cpyArgv);
     return (0);
 }

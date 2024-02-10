@@ -8,9 +8,11 @@
     #define FALSE 0
 #endif
 
-uint32_t    bigCallParseArgument(char *argv[], int i, int j, uint32_t maxValue);
-ssize_t    bigCallParsePreload(char *argv[], int i, int j, uint32_t maxValue);
-void    bigCallParsePattern(char *argv[], int i, int j);
+uint32_t    bigCallParseArgument(const char *cmd, char *argv[],
+    int i, int j, uint32_t maxValue);
+ssize_t    bigCallParsePreload(const char *cmd, char *argv[],
+    int i, int j, uint32_t maxValue);
+void    bigCallParsePattern(const char *cmd, char *argv[], int i, int j);
 uint32_t    callParseArgument(char *argv[], int i, uint32_t maxValue);
 ssize_t    callParsePreload(char *argv[], int i, uint32_t maxValue);
 void    callParsePattern(char *argv[], int i);

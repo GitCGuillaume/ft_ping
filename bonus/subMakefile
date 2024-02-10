@@ -1,6 +1,6 @@
 TOOLS_BONUS = ./bonus/srcs/tools
 
-SRCS_TOOLS_BONUS = icmpByCodeTools_bonus.c icmpTools_bonus.c toolsTwo_bonus.c tools_bonus.c
+SRCS_TOOLS_BONUS = icmpByCodeTwo_bonus.c icmpByCodeTools_bonus.c toolsTwo_bonus.c tools_bonus.c
 
 SRCS_BONUS = icmpByCode_bonus.c icmpRequest_bonus.c icmpResponse_bonus.c
 
@@ -8,11 +8,11 @@ SRCS_MAIN_BONUS = parsingToolsOne_bonus.c parsingToolsTwo_bonus.c main_bonus.c
 
 NAME_BONUS = ft_ping_bonus
 
-GCC = gcc
+GCC_B = gcc
 
-FLAGS = -Wall -Wextra -Werror
+FLAGS_B = -Wall -Wextra -Werror
 
-INCLUDES_BONUS = -Ibonus/includes -Isrcs/libft #-g3 -fsanitize=leak
+INCLUDES_BONUS = -Ibonus/includes -Isrcs/libft
 
 O_DIR_BONUS = objs_bonus
 
@@ -24,19 +24,19 @@ OBJS_MAIN_BONUS = $(addprefix $(O_DIR_BONUS)/, $(SRCS_MAIN_BONUS:.c=.o))
 
 $(O_DIR_BONUS)/%.o: $(TOOLS_BONUS)/%.c
 		@mkdir -p $(O_DIR_BONUS)
-		$(GCC) $(FLAGS) $(INCLUDES_BONUS) -c $< -o $@
+		$(GCC_B) $(FLAGS_B) $(INCLUDES_BONUS) -c $< -o $@
 
 $(O_DIR_BONUS)/%.o: ./bonus/srcs/%.c
 		@mkdir -p $(O_DIR_BONUS)
-		$(GCC) $(FLAGS) $(INCLUDES_BONUS) -c $< -o $@
+		$(GCC_B) $(FLAGS_B) $(INCLUDES_BONUS) -c $< -o $@
 
 $(O_DIR_BONUS)/%.o: ./bonus/%.c
 		@mkdir -p $(O_DIR_BONUS)
-		$(GCC) $(FLAGS) $(INCLUDES_BONUS) -c $< -o $@
+		$(GCC_B) $(FLAGS_B) $(INCLUDES_BONUS) -c $< -o $@
 
 $(NAME_BONUS):	$(OBJS_T_BONUS) $(OBJS_SRCS_BONUS) $(OBJS_MAIN_BONUS)
 	make all -C ./srcs/libft
-	$(GCC) $(FLAGS) $(INCLUDES_BONUS) -o $(NAME_BONUS) \
+	$(GCC_B) $(FLAGS_B) $(INCLUDES_BONUS) -o $(NAME_BONUS) \
 		$(OBJS_T_BONUS) $(OBJS_SRCS_BONUS) $(OBJS_MAIN_BONUS) \
 		./srcs/libft/libft.a
 

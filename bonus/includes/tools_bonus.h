@@ -22,12 +22,15 @@
 #ifndef FALSE
     #define FALSE 0
 #endif
+#ifndef MAXDNAME
+    #define MAXDNAME 1025
+#endif
+#define STOP 2
 #define RELOOP 2
 #define NONE 20
 #define ICMP 1
 #define STDERR 2
-#define FQDN_MAX 255
-#define CONV_SEC_TO_MICR 1000000
+#define EPSILON 1.e-10
 
 /*
     dup == when packet is read for the first time, set it to TRUE
@@ -52,11 +55,7 @@ void    sigHandlerInt(int sigNum);
 void    signalEnd(void);
 void    exitInet(void);
 void    timerFlagExit(struct timeval *tvB, struct timeval cpyGlobal);
-void    bitMask(uint16_t *addr, uint16_t mask, char *buff, int nb, int jump);
-void    bigBitMask(uint32_t *addr, uint32_t mask, char *buff, int nb, int jump);
-uint16_t    convertEndianess(uint16_t echoVal);
 uint16_t    checksum(uint16_t *hdr, size_t len);
-uint16_t    convertEndianess(uint16_t echoVal);
 void    switchFlags(char *argv[], int pos, int i, int len);
 int    similarFlags(int same[8], const char *memory);
 

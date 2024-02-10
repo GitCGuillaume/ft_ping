@@ -18,47 +18,49 @@ static char    findArgument(char **str, int i) {
 }
 
 /* searchBigOption part start*/
-uint32_t    bigCallParseArgument(char *argv[], int i, int j, uint32_t maxValue) {
+uint32_t    bigCallParseArgument(const char *cmd, char *argv[],
+    int i, int j, uint32_t maxValue) {
     uint32_t value = 0;
 
     findArgumentEq(argv, i, j);
     if (!argv[i][j]) {
-        value = parseArgument(argv[i], argv[i + 1], &argv[i + 1], maxValue);
+        value = parseArgument(cmd, argv[i + 1], &argv[i + 1], maxValue);
         argv[i] = NULL;
         argv[i + 1] = NULL;
     }
     else {
-        value = parseArgument(argv[i], argv[i], &argv[i], maxValue);
+        value = parseArgument(cmd, argv[i], &argv[i], maxValue);
         argv[i] = NULL;
     }
     return (value);
 }
 
-ssize_t    bigCallParsePreload(char *argv[], int i, int j, uint32_t maxValue) {
+ssize_t    bigCallParsePreload(const char *cmd, char *argv[],
+    int i, int j, uint32_t maxValue) {
     ssize_t value = 0;
 
     findArgumentEq(argv, i, j);
     if (!argv[i][j]) {
-        value = parsePreload(argv[i], argv[i + 1], &argv[i + 1], maxValue);
+        value = parsePreload(cmd, argv[i + 1], &argv[i + 1], maxValue);
         argv[i] = NULL;
         argv[i + 1] = NULL;
     }
     else {
-        value = parsePreload(argv[i], argv[i], &argv[i], maxValue);
+        value = parsePreload(cmd, argv[i], &argv[i], maxValue);
         argv[i] = NULL;
     }
     return (value);
 }
 
-void    bigCallParsePattern(char *argv[], int i, int j) {
+void    bigCallParsePattern(const char *cmd, char *argv[], int i, int j) {
     findArgumentEq(argv, i, j);
     if (!argv[i][j]) {
-        parsePattern(argv[i], argv[i + 1], &argv[i + 1]);
+        parsePattern(cmd, argv[i + 1], &argv[i + 1]);
         argv[i] = NULL;
         argv[i + 1] = NULL;
     }
     else {
-        parsePattern(argv[i], argv[i], &argv[i]);
+        parsePattern(cmd, argv[i], &argv[i]);
         argv[i] = NULL;
     }
 }

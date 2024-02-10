@@ -2,9 +2,9 @@ TOOLS = ./srcs/tools
 
 BONUS_MA = ./bonus/subMakefile
 
-SRCS_TOOLS = icmpByCodeTools.c icmpTools.c tools.c
+SRCS_TOOLS = icmpByCodeTools.c tools.c
 
-SRCS = icmpByCode.c icmpRequest.c icmpResponse.c
+SRCS = icmpByCodeTwo.c icmpByCode.c icmpRequest.c icmpResponse.c
 
 SRCS_MAIN = main.c
 
@@ -14,7 +14,7 @@ GCC = gcc
 
 FLAGS = -Wall -Wextra -Werror
 
-INCLUDES = -Iincludes -Isrcs/libft #-g3 -fsanitize=address
+INCLUDES = -Iincludes -Isrcs/libft
 
 O_DIR = objs
 
