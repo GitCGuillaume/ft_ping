@@ -1,6 +1,6 @@
 # ft_ping
 
-Ce projet a besoin des droits administrateurs.
+Ce projet a besoin des droits administrateurs, il est basé sur le pack [inetutils](https://www.gnu.org/software/inetutils/) (version 2.0).
 
 Ping est une commande qui permet de vérifier l'accessibilité vers une machine dans un réseau, pour ce faire, elle utilise le protocole de communication ICMP. ([Internet Control Message Protocol](https://fr.wikipedia.org/wiki/Internet_Control_Message_Protocol))
 
