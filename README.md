@@ -62,6 +62,7 @@ Verbose (ou -v) permet d'afficher plus d'informations, ici le paquet de base ava
 -p ou --pattern (sudo ./ft_ping_bonus -p 123 google.com)
 
 >Modifie les valeurs du paquet, cela est utile pour diagnostiquer les problèmes dans le réseau
+>![data](https://github.com/GitCGuillaume/ft_ping/assets/34135668/ce91e745-e1c5-4f60-a6a2-2555aaedb045)
 
 -T ou --tos (sudo ./ft_ping_bonus T 1 google.com)
 >Règle la transmission de priorité paquet
