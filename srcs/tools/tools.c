@@ -20,8 +20,8 @@ static double   ftSqrt(double num) {
         eqZ = (x * x) - num;
         if (eqZ < 0.0)
             eqZ *= -1.0;
-		if (eqZ < EPSILON)
-			break ;
+	if (eqZ < EPSILON)
+		break ;
     }
     return (x);
 }
